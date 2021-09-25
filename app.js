@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // import required classes and objects
 const { token, prefix } = require('./config.json');
 
