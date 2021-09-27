@@ -2,7 +2,9 @@ const { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChan
 const fs = require('fs');
 const ytdl = require('ytdl-core-discord');
 // const { FFmpegCommand, FFmpegInput, FFmpegOutput } = require('@tedconf/fessonia')();
-// const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
+const prism = require('prism-media');
+const ytdl2 = require('ytdl-core');
 
 const ytdlOptions = {
 	filter: 'audioonly',
@@ -28,8 +30,8 @@ class MusicSession {
 
 		this.player.on('stateChange', (oldState, newState) => {
 			if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
+				this.removeCurrentMediaFile();
 				if (this.queue.length > 0) {
-					// this.removeCurrentMediaFile();
 					this.playVideo(this.getNextVideo());
 				}
 				else {
@@ -55,13 +57,11 @@ class MusicSession {
 
 	removeCurrentMediaFile() {
 		const filename = this.currentVideo.getMediaFilename();
-		for (const format in ['.webm', '-s.webm']) {
-			try {
-				fs.unlinkSync('.\\media_cache\\' + filename + format);
-			}
-			catch (err) {
-				console.warn(err);
-			}
+		try {
+			fs.unlinkSync('.\\media_cache\\' + filename + '.webm');
+		}
+		catch (err) {
+			console.warn(err);
 		}
 	}
 
@@ -88,6 +88,7 @@ class MusicSession {
 
 		// standard method
 		this.currentStream = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
+		this.currentVideo.setMediaFilename(uuidv4().toString());
 		this.resource = createAudioResource(this.currentStream);
 		this.player.play(this.resource);
 
@@ -102,7 +103,26 @@ class MusicSession {
 	}
 
 	async seek(seekTime) {
-		console.log(seekTime);
+		console.log('seeked:', seekTime);
+		ytdl2(this.currentVideo.getUrl(), ytdlOptions)
+			.pipe(fs.createWriteStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm'))
+			.on('finish', () => {
+				const file = fs.createReadStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm');
+				const transcoder = new prism.FFmpeg({
+					args: [
+						'-analyzeduration', '0',
+						'-loglevel', '0',
+						'-f', 's16le',
+						'-ar', '48000',
+						'-ac', '2',
+						'-ss', seekTime,
+					],
+				});
+				const seekedFile = file.pipe(transcoder);
+				const encodedFile = seekedFile.pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }));
+				this.resource = createAudioResource(encodedFile);
+				this.player.play(this.resource);
+			});
 
 		// const ffin = new FFmpegInput('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm');
 		// const ffout = new FFmpegOutput('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '-s.webm', {
