@@ -66,73 +66,63 @@ client.on('messageCreate', message => {
 	}
 	// ACTION PLAY
 	else if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
-
-		checkSession(message, true, session => {
-			
-		})
-
 		// join channel if not joinned yet
 		const youtubeUrlMatch = message.content.match(comboRe);
 		if (youtubeUrlMatch) {
-			const vc = getVoiceConnection(message.guild.id);
-			if (!vc) {
-				musicSessions[message.guild.id] = new MusicSession(message.member?.voice.channel);
-			}
-
-			const session = musicSessions[message.guild.id];
-
-			if (youtubeUrlMatch.groups?.videoUrl !== undefined) {
-				// add new songs to queue
-				getVideoInfo(youtubeUrlMatch.groups?.videoId)
-					.then(response => {
-						if (response.status === 200 && response.data?.items.length > 0) {
-							response.data?.items.map(function(video) {
-								session.play(new Video(video.id, video.snippet.title, message));
+			checkSession(message, true, session => {
+				if (youtubeUrlMatch.groups?.videoUrl !== undefined) {
+					// add new songs to queue
+					getVideoInfo(youtubeUrlMatch.groups?.videoId)
+						.then(response => {
+							if (response.status === 200 && response.data?.items.length > 0) {
+								response.data?.items.map(function(video) {
+									session.play(new Video(video.id, video.snippet.title, message));
+									if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
+										message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
+									}
+								});
+							}
+						})
+						.catch(console.warn);
+				}
+				else if (youtubeUrlMatch.groups?.playlistUrl !== undefined) {
+					getPlaylistVideos(youtubeUrlMatch.groups?.playlistId)
+						.then(response => {
+							if (response.status === 200 && response.data?.items.length > 0) {
+								response.data?.items.map(video => {
+									session.play(new Video(video.contentDetails.videoId, video.snippet.title, message));
+								});
+	
+								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
+									message.channel.send(`Added \`${response.data?.items.length}\` videos to queue.`);
+								}
+								else {
+									message.channel.send(`Added \`${response.data?.items.length - 1}\` videos to queue.`);
+								}
+							}
+						})
+						.catch(console.warn);
+				}
+				// Keyword query
+				else if (youtubeUrlMatch.groups?.keyword !== undefined) {
+					getQuerySearchReults(youtubeUrlMatch.groups?.keyword, 5)
+						.then(response => {
+							if (response.status === 200 && response.data?.items.length > 0) {
+								// grab first video
+								const video = response.data?.items[0];
+								session.play(new Video(video.id.videoId, video.snippet.title, message));
+	
 								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
 									message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
 								}
-							});
-						}
-					})
-					.catch(console.warn);
-			}
-			else if (youtubeUrlMatch.groups?.playlistUrl !== undefined) {
-				getPlaylistVideos(youtubeUrlMatch.groups?.playlistId)
-					.then(response => {
-						if (response.status === 200 && response.data?.items.length > 0) {
-							response.data?.items.map(video => {
-								session.play(new Video(video.contentDetails.videoId, video.snippet.title, message));
-							});
-
-							if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
-								message.channel.send(`Added \`${response.data?.items.length}\` videos to queue.`);
 							}
 							else {
-								message.channel.send(`Added \`${response.data?.items.length - 1}\` videos to queue.`);
+								message.channel.send(`No videos found with the keyword you have entered.`)
 							}
-						}
-					})
-					.catch(console.warn);
-			}
-			// Keyword query
-			else if (youtubeUrlMatch.groups?.keyword !== undefined) {
-				getQuerySearchReults(youtubeUrlMatch.groups?.keyword, 5)
-					.then(response => {
-						if (response.status === 200 && response.data?.items.length > 0) {
-							// grab first video
-							const video = response.data?.items[0];
-							session.play(new Video(video.id.videoId, video.snippet.title, message));
-
-							if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
-								message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
-							}
-						}
-						else {
-							message.channel.send(`No videos found with the keyword you have entered.`)
-						}
-					})
-					.catch(console.warn);
-			}
+						})
+						.catch(console.warn);
+				}
+			});
 		}
 		else {
 			return message.channel.send('Don\'t play nothing. :smile:');
@@ -211,6 +201,7 @@ async function manageSession(message, autoCreateNewSession) {
 		}
 		else {
 			message.channel.send('I do not see you in a voice channel, join one before you use me.');
+			return false;
 		}
 	}
 	return false;
