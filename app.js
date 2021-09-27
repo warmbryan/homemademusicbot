@@ -29,21 +29,26 @@ client.on('messageCreate', message => {
 
 	// ACTION JOIN
 	if (message.content.startsWith(`${prefix}join`)) {
-		const channel = message.member?.voice.channel;
-		if (!channel) return message.content.send('I don\'t see you in a voice channel!');
-		musicSessions[message.guild.id] = new MusicSession(channel);
+		checkSession(message, true, session => {});
+
+		// const channel = message.member?.voice.channel;
+		// if (!channel) return message.channel.send('I don\'t see you in a voice channel!');
+		// musicSessions[message.guild.id] = new MusicSession(channel);
 	}
 	// ACTION LEAVE
 	else if (message.content.startsWith(`${prefix}leave`)) {
 		// TODO: fix logic of leaving
-		musicSessions[message.guild.id].leave();
-		return message.channel.send('See you later!');
+		checkSession(message, false, async session => {
+			await session.leave();
+			clearSession(message.guild.id);
+			message.channel.send('See you later.');
+		});
 	}
 	// ACTION SKIP
 	else if (message.content.startsWith(`${prefix}skip`)) {
-		if (message.guild.id in musicSessions) {
-			musicSessions[message.guild.id].skip(message);
-		}
+		checkSession(message, false, session => {
+			session.skip(message);
+		});
 	}
 	// ACTION PAUSE
 	else if (message.content.startsWith(`${prefix}pause`)) {
@@ -61,6 +66,11 @@ client.on('messageCreate', message => {
 	}
 	// ACTION PLAY
 	else if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
+
+		checkSession(message, true, session => {
+			
+		})
+
 		// join channel if not joinned yet
 		const youtubeUrlMatch = message.content.match(comboRe);
 		if (youtubeUrlMatch) {
@@ -77,12 +87,9 @@ client.on('messageCreate', message => {
 					.then(response => {
 						if (response.status === 200 && response.data?.items.length > 0) {
 							response.data?.items.map(function(video) {
-								session.play(new Video(video.id, video.snippet.title));
+								session.play(new Video(video.id, video.snippet.title, message));
 								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
 									message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
-								}
-								else {
-									message.channel.send(`Playing \`${video.snippet.title}\`.`);
 								}
 							});
 						}
@@ -94,14 +101,14 @@ client.on('messageCreate', message => {
 					.then(response => {
 						if (response.status === 200 && response.data?.items.length > 0) {
 							response.data?.items.map(video => {
-								session.play(new Video(video.contentDetails.videoId, video.snippet.title));
+								session.play(new Video(video.contentDetails.videoId, video.snippet.title, message));
 							});
 
 							if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
 								message.channel.send(`Added \`${response.data?.items.length}\` videos to queue.`);
 							}
 							else {
-								message.channel.send(`Playing \`${response.data?.items[0].snippet.title}\` and added \`${response.data?.items.length - 1}\` videos to queue`);
+								message.channel.send(`Added \`${response.data?.items.length - 1}\` videos to queue.`);
 							}
 						}
 					})
@@ -114,14 +121,14 @@ client.on('messageCreate', message => {
 						if (response.status === 200 && response.data?.items.length > 0) {
 							// grab first video
 							const video = response.data?.items[0];
-							session.play(new Video(video.id.videoId, video.snippet.title));
+							session.play(new Video(video.id.videoId, video.snippet.title, message));
 
 							if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
 								message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
 							}
-							else {
-								message.channel.send(`Playing \`${video.snippet.title}\`.`);
-							}
+						}
+						else {
+							message.channel.send(`No videos found with the keyword you have entered.`)
 						}
 					})
 					.catch(console.warn);
@@ -198,21 +205,32 @@ async function manageSession(message, autoCreateNewSession) {
 		return musicSessions[message.guild.id];
 	}
 	else if (autoCreateNewSession) {
-		musicSessions[message.guild.id] = new MusicSession(message.member?.voice.channel);
-		return musicSessions[message.guild.id];
+		if (message.member?.voice.channel) {
+			musicSessions[message.guild.id] = new MusicSession(message.member?.voice.channel);
+			return musicSessions[message.guild.id];
+		}
+		else {
+			message.channel.send('I do not see you in a voice channel, join one before you use me.');
+		}
 	}
-	return undefined;
+	return false;
 }
 
 function checkSession(message, autoCreateNewSession, callback) {
-	manageSession(message, false)
+	manageSession(message, autoCreateNewSession)
 		.then(session => {
-			if (session !== undefined) {
+			if (session) {
 				callback(session);
 			}
-			else {
+			else if (!autoCreateNewSession && !session) {
 				message.channel.send('This guild does not have an active session. Use `-join` or play a music with `-p`|`-play` to start.');
 			}
 		})
 		.catch(console.warn);
+}
+
+function clearSession(guildId) {
+	if (guildId in musicSessions) {
+		delete musicSessions[guildId];
+	}
 }

@@ -1,12 +1,11 @@
-const { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, entersState, VoiceConnectionStatus, AudioPlayer } = require('@discordjs/voice');
 const ytdl = require('ytdl-core-discord');
 const prism = require('prism-media');
 const { pipeline } = require('stream');
 
 const ytdlOptions = {
 	filter: 'audioonly',
-	// format: 'bestaudio/best',
-	// quality: 'highestaudio',
+	quality: 'highestaudio',
 	highWaterMark: 1 << 28,
 	quiet: true,
 	no_warnings: true,
@@ -27,21 +26,19 @@ class MusicSession {
 		this.currentStream = undefined;
 
 		this.player.on('stateChange', (oldState, newState) => {
+			// TODO: prevent skip from activating this feature
 			if (newState.status === AudioPlayerStatus.Idle && oldState.status === AudioPlayerStatus.Playing) {
 				if (this.queue.length > 0) {
 					this.playMusic(this.getNextMusic());
 				}
 				else {
+					this.currentVideo = undefined;
+					this.currentStream = undefined;
 					this.inactivityTimeout = setTimeout(() => {
+						this.queueHistory('I will make my leave here, type `-join` or play something to start a new session. Maximum 5 minutes idle time.')
 						this.connection.destroy();
-					}, 5 * 60 * 1000);
+					}, (5 * 60 * 1000));
 				}
-				// TODO: leave when no music for x minutes
-				// else {
-				// 	setTimeout(() => {
-				// 		player.destroy();
-				// 	}, 60 * 2 * 1000);
-				// }
 			}
 		});
 
@@ -55,12 +52,27 @@ class MusicSession {
 
 	play(video) {
 		clearTimeout(this.inactivityTimeout);
-		if (this.player.state.status === AudioPlayerStatus.Idle) {
+		if (this.player.state.status === AudioPlayerStatus.Idle && this.currentVideo === undefined) {
 			this.playMusic(video);
 		}
 		else {
 			this.queue.push(video);
 		}
+	}
+
+	getNextMusic() {
+		const music = this.queue.shift();
+		this.queueHistory.push(music);
+		return music;
+	}
+
+	async playMusic(video) {
+		// TODO: refactor
+		this.currentVideo = video;
+		this.currentVideo.getMessage().channel.send('Playing `' + this.currentVideo.getTitle() + '`.');
+		this.currentStream = await ytdl(video.getUrl(), ytdlOptions);
+		this.resource = createAudioResource(this.currentStream);
+		this.player.play(this.resource);
 	}
 
 	async seek(seekTime) {
@@ -103,40 +115,22 @@ class MusicSession {
 		this.player.play(newResource);
 	}
 
-	getNextMusic() {
-		const music = this.queue.shift();
-		this.queueHistory.push(music);
-		return music;
-	}
-
-	async playMusic(video) {
-		this.player.stop();
-		this.currentVideo = video;
-		this.currentStream = await ytdl(video.getUrl(), ytdlOptions);
-		this.resource = createAudioResource(this.currentStream);
-		this.player.play(this.resource);
-	}
-
 	skip(message) {
-		// TODO: goes to the next one.
-		message.channel.send('Skipped current song.');
-
 		this.player.stop();
 		if (this.queue.length > 0) {
+			message.channel.send('Skipped current song.');
 			this.playMusic(this.getNextMusic());
 		}
 		else {
-			message.channel.send('No music in queue, add some songs!');
+			message.channel.send('Skipped current song. No music in queue, add some songs!');
 		}
 	}
 
 	pause() {
-		// TODO: pause the player
 		this.player.pause();
 	}
 
 	unpause() {
-		// TODO: unpause the player
 		this.player.unpause();
 	}
 
@@ -177,12 +171,6 @@ class MusicSession {
 	}
 
 	leave() {
-		// const connection = getVoiceConnection(message.guild.id);
-		// if (connection) {
-		// 	connection.destroy();
-		// 	return message.channel.send('KEKBye');
-		// }
-
 		if (this.connection !== undefined) {
 			this.connection.destroy();
 		}

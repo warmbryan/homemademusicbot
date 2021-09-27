@@ -1,7 +1,8 @@
 class Video {
-	constructor(vId, vTitle) {
+	constructor(vId, vTitle, vMessage) {
 		this.id = vId;
 		this.title = vTitle;
+		this.message = vMessage;
 	}
 
 	getId() {
@@ -14,6 +15,10 @@ class Video {
 
 	getTitle() {
 		return this.title;
+	}
+
+	getMessage() {
+		return this.message;
 	}
 }
 
