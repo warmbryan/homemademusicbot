@@ -10,12 +10,14 @@ const { removeFromQueueRe, seekRe } = require('./helpers/CommandsRE');
 // models
 const Video = require('./models/Video');
 
-const { Client, Intents } = require('discord.js');
+const { Client, Intents, MessageEmbed } = require('discord.js');
 const MusicSession = require('./models/MusicSession');
 const { AudioPlayerStatus } = require('@discordjs/voice');
 
 const musicSessions = new Object();
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] });
+
+const helpCommand = require('./commands/help');
 
 // const { MessageActionRow, MessageButton } = require('discord.js');
 // let iFilter = undefined;
@@ -141,21 +143,26 @@ client.on('messageCreate', message => {
 	// ACTION QUEUE
 	else if (message.content.startsWith(`${prefix}queue`)) {
 		checkSession(message, false, session => {
-			const queue = session.getQueue();
-			let msg = '';
+			try {
+				const queue = session.getQueue();
+				let msg = '';
 
-			if (queue.length > 0) {
-				msg = 'A list of music\n```';
-				queue.map((value, index) => {
-					msg += `${index + 1}. ${value.getTitle()}\n`;
-				});
-				msg += '```';
-			}
-			else {
-				msg = 'No music in queue, add some!';
-			}
+				if (queue.length > 0) {
+					msg = 'A list of music\n```';
+					queue.map((value, index) => {
+						msg += `${index + 1}. ${value.getTitle()}\n`;
+					});
+					msg += '```';
+				}
+				else {
+					msg = 'No music in queue, add some!';
+				}
 
-			message.channel.send(msg);
+				message.channel.send(msg);
+			}
+			catch (err) {
+				// nothing
+			}
 		});
 	}
 	// ACTION REMOVE
@@ -181,13 +188,12 @@ client.on('messageCreate', message => {
 	}
 	else if (message.content.startsWith(`${prefix}help`) || message.content.startsWith(`${prefix}H`)) {
 		// TODO: list the commands
-		return message.channel.send('This command is still W.I.P.');
+		helpCommand(message);
 	}
 	else if (message.content.startsWith(`${prefix}seek`)) {
-		// TODO: seek the music
 		checkSession(message, false, session => {
 			const seekValueMatch = message.content.match(seekRe);
-			if (seekValueMatch.groups?.seekTime !== undefined) {
+			if (seekValueMatch && seekValueMatch.groups?.seekTime !== undefined) {
 				session.seek(seekValueMatch.groups?.seekTime);
 			}
 			else {
@@ -196,12 +202,24 @@ client.on('messageCreate', message => {
 		});
 	}
 	else if (message.content.startsWith(`${prefix}clear`)) {
-		// TODO: clear the queue and stop the music
 		checkSession(message, false, session => {
 			session.clear();
 		});
 	}
-	// else if (message.content.startsWith(`${prefix}blowjob`)) {
+	else if (message.content.startsWith(`${prefix}now`)) {
+		checkSession(message, false, session => {
+			const cVideo = session.getCurrentVideo();
+
+			const embedMsg = new MessageEmbed()
+				.setTitle('Currently Playing')
+				.setURL(cVideo.getUrl())
+				.setDescription(cVideo.getTitle())
+				.setTimestamp();
+
+			message.channel.send({ embeds: [embedMsg] });
+		});
+	}
+	// else if (message.content.startsWith(`${prefix}bruh`)) {
 	// 	const row = new MessageActionRow()
 	// 		.addComponents(
 	// 			new MessageButton()

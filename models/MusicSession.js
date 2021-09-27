@@ -39,9 +39,10 @@ class MusicSession {
 					this.currentStream = undefined;
 					this.resource = undefined;
 
-					this.inactivityTimeout = setTimeout(() => {
-						this.queueHistory[this.queueHistory.length - 1].getMessage().channel.send('I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
+					this.inactivityTimeout = setTimeout(async () => {
+						await this.queueHistory.pop().getMessage().channel.send('I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
 						this.connection.destroy();
+						delete this;
 					}, (5 * 60 * 1000));
 				}
 			}
@@ -61,7 +62,7 @@ class MusicSession {
 			fs.unlinkSync('.\\media_cache\\' + filename + '.webm');
 		}
 		catch (err) {
-			console.warn(err);
+			// console.warn(err);
 		}
 	}
 
@@ -91,15 +92,6 @@ class MusicSession {
 		this.currentVideo.setMediaFilename(uuidv4().toString());
 		this.resource = createAudioResource(this.currentStream);
 		this.player.play(this.resource);
-
-		// const newMediaFilename = uuidv4().toString();
-		// this.currentVideo.setMediaFilename(newMediaFilename);
-		// ytdl(this.currentVideo.getUrl(), ytdlOptions)
-		// 	.pipe(fs.createWriteStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm'))
-		// 	.on('finish', () => {
-		// 		this.resource = createAudioResource('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm', { inputType: StreamType.WebmOpus });
-		// 		this.player.play(this.resource);
-		// 	});
 	}
 
 	async seek(seekTime) {
@@ -123,56 +115,11 @@ class MusicSession {
 				this.resource = createAudioResource(encodedFile);
 				this.player.play(this.resource);
 			});
-
-		// const ffin = new FFmpegInput('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm');
-		// const ffout = new FFmpegOutput('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '-s.webm', {
-		// 	'c:a': 'copy',
-		// 	'ss': seekTime,
-		// });
-
-		// const cmd = new FFmpegCommand();
-		// cmd.addInput(ffin);
-		// cmd.addOutput(ffout);
-
-		// cmd.on('update', () => {
-		// 	// console.log(`Received update on ffmpeg process:`, data);
-		// 	// handle the update here
-		// });
-
-		// cmd.on('success', () => {
-		// 	// when the media processing is done
-		// 	// assert(data.exitCode === 0);
-		// 	// assert(data.hasOwnProperty('progress'));
-		// 	// assert(data.progress.hasOwnProperty('progressData'));
-		// 	// console.log(`Completed successfully with exit code ${data.exitCode}`, data.progress.progressData);
-
-		// 	// handle the success here
-		// 	this.resource = createAudioResource('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '-s.webm', { inputType: StreamType.WebmOpus });
-		// 	this.player.play(this.resource);
-		// });
-
-		// cmd.on('error', (err) => {
-		// 	console.log(err.message, err.stack);
-		// 	// inspect and handle the error here
-		// });
-
-		// cmd.spawn();
-		// this.currentStream2 = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
-
-		// const transcoder = new prism.FFmpeg({
-		// 	args: [
-		// 		'-analyzeduration', '0',
-		// 		'-loglevel', '0',
-		// 		'-c:a', 'copy',
-		// 		'-ss', seekTime,
-		// 	],
-		// });
-
-		// const pipe2 = this.currentStream2.pipe(transcoder);
 	}
 
 	skip() {
 		this.player.stop();
+		// this.currentVideo.getMessage().channel.send()
 	}
 
 	pause() {
@@ -231,6 +178,10 @@ class MusicSession {
 
 	getPlayerDuration() {
 		return this.resource.playbackDuration;
+	}
+
+	getCurrentVideo() {
+		return this.currentVideo;
 	}
 
 	clear() {
