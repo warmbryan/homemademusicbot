@@ -26,14 +26,15 @@ class MusicSession {
 		this.currentStream = undefined;
 
 		this.player.on('stateChange', (oldState, newState) => {
-			// TODO: prevent skip from activating this feature
-			if (newState.status === AudioPlayerStatus.Idle && oldState.status === AudioPlayerStatus.Playing) {
+			if (newState.status === AudioPlayerStatus.Idle && newState.status === AudioPlayerStatus.Playing) {
 				if (this.queue.length > 0) {
 					this.playMusic(this.getNextMusic());
 				}
 				else {
 					this.currentVideo = undefined;
 					this.currentStream = undefined;
+					this.resource = undefined;
+
 					this.inactivityTimeout = setTimeout(() => {
 						this.queueHistory[this.queueHistory.length - 1].getMessage().channel.send('I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
 						this.connection.destroy();
@@ -46,7 +47,7 @@ class MusicSession {
 			.then(connection => {
 				connection.subscribe(this.player);
 			})
-			// TODO: log into db or something
+			// TODO: Maybe something to reconnect?
 			.catch(console.warn);
 	}
 
@@ -67,7 +68,6 @@ class MusicSession {
 	}
 
 	async playMusic(video) {
-		// TODO: refactor
 		this.currentVideo = video;
 		this.currentVideo.getMessage().channel.send('Playing `' + this.currentVideo.getTitle() + '`.');
 		this.currentStream = await ytdl(video.getUrl(), ytdlOptions);
@@ -85,7 +85,6 @@ class MusicSession {
 			.filter(filter)
 			.sort((a, b) => b.audioBitrate - a.audioBitrate);
 		const finalFormat = videoInfo.formats.find(format => !format.bitrate) || videoInfo.formats[0];
-
 
 		// PCM seeking
 		const transcoder = await new prism.FFmpeg({
@@ -110,6 +109,7 @@ class MusicSession {
 			// nothing to see here
 			// console.log(err);
 		});
+
 		// const newStream = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
 		const newResource = createAudioResource(newStream2);
 		this.player.play(newResource);
@@ -117,13 +117,14 @@ class MusicSession {
 
 	skip(message) {
 		this.player.stop();
-		if (this.queue.length > 0) {
-			message.channel.send('Skipped current song.');
-			this.playMusic(this.getNextMusic());
-		}
-		else {
-			message.channel.send('Skipped current song. No music in queue, add some songs!');
-		}
+
+		// if (this.queue.length > 0) {
+		// 	message.channel.send('Skipped current song.');
+		// 	this.playMusic(this.getNextMusic());
+		// }
+		// else {
+		// 	message.channel.send('Skipped current song. No music in queue, add some songs!');
+		// }
 	}
 
 	pause() {
@@ -162,6 +163,12 @@ class MusicSession {
 		}
 	}
 
+	leave() {
+		if (this.connection !== undefined) {
+			this.connection.destroy();
+		}
+	}
+
 	getQueue() {
 		return this.queue;
 	}
@@ -170,18 +177,18 @@ class MusicSession {
 		return this.queueHistory;
 	}
 
-	leave() {
-		if (this.connection !== undefined) {
-			this.connection.destroy();
-		}
-	}
-
 	getPlayerStatus() {
 		return this.player.state.status;
 	}
 
 	getPlayerDuration() {
 		return this.resource.playbackDuration;
+	}
+
+	clear() {
+		this.queue.clear();
+		this.queueHistory.clear();
+		this.player.stop();
 	}
 }
 

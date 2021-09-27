@@ -186,6 +186,9 @@ client.on('messageCreate', message => {
 			session.seek(seekValueMatch.groups?.seekTime);
 		});
 	}
+	else if (message.content.startsWith(`${prefix}clear`)) {
+		
+	}
 });
 
 client.login(token);
