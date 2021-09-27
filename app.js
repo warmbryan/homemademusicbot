@@ -12,10 +12,13 @@ const Video = require('./models/Video');
 
 const { Client, Intents } = require('discord.js');
 const MusicSession = require('./models/MusicSession');
-const { getVoiceConnection, AudioPlayerStatus } = require('@discordjs/voice');
+const { AudioPlayerStatus } = require('@discordjs/voice');
 
 const musicSessions = new Object();
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] });
+
+// const { MessageActionRow, MessageButton } = require('discord.js');
+// let iFilter = undefined;
 
 client.once('ready', () => {
 	console.log('Ready!');
@@ -29,7 +32,9 @@ client.on('messageCreate', message => {
 
 	// ACTION JOIN
 	if (message.content.startsWith(`${prefix}join`)) {
-		checkSession(message, true, session => {});
+		checkSession(message, true, () => {
+			// bruh
+		});
 
 		// const channel = message.member?.voice.channel;
 		// if (!channel) return message.channel.send('I don\'t see you in a voice channel!');
@@ -37,7 +42,6 @@ client.on('messageCreate', message => {
 	}
 	// ACTION LEAVE
 	else if (message.content.startsWith(`${prefix}leave`)) {
-		// TODO: fix logic of leaving
 		checkSession(message, false, async session => {
 			await session.leave();
 			clearSession(message.guild.id);
@@ -92,7 +96,7 @@ client.on('messageCreate', message => {
 								response.data?.items.map(video => {
 									session.play(new Video(video.contentDetails.videoId, video.snippet.title, message));
 								});
-	
+
 								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
 									message.channel.send(`Added \`${response.data?.items.length}\` videos to queue.`);
 								}
@@ -111,13 +115,13 @@ client.on('messageCreate', message => {
 								// grab first video
 								const video = response.data?.items[0];
 								session.play(new Video(video.id.videoId, video.snippet.title, message));
-	
+
 								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
 									message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
 								}
 							}
 							else {
-								message.channel.send(`No videos found with the keyword you have entered.`)
+								message.channel.send('No videos found with the keyword you have entered.');
 							}
 						})
 						.catch(console.warn);
@@ -183,13 +187,55 @@ client.on('messageCreate', message => {
 		// TODO: seek the music
 		checkSession(message, false, session => {
 			const seekValueMatch = message.content.match(seekRe);
-			session.seek(seekValueMatch.groups?.seekTime);
+			if (seekValueMatch.groups?.seekTime !== undefined) {
+				session.seek(seekValueMatch.groups?.seekTime);
+			}
+			else {
+				message.channel.send('Invalid seek format.');
+			}
 		});
 	}
 	else if (message.content.startsWith(`${prefix}clear`)) {
-		
+		// TODO: clear the queue and stop the music
+		checkSession(message, false, session => {
+			session.clear();
+		});
 	}
+	// else if (message.content.startsWith(`${prefix}blowjob`)) {
+	// 	const row = new MessageActionRow()
+	// 		.addComponents(
+	// 			new MessageButton()
+	// 				.setCustomId('bjGachi1')
+	// 				.setLabel('Gachi Style')
+	// 				.setStyle('PRIMARY'),
+	// 		);
+
+	// 	// const filter = i =>
+	// 	iFilter = i => i.customId === 'bjGachi1' && i.user.id === message.author.id;
+
+	// 	return message.reply({ content: 'How you want me to do it?', components: [row] });
+	// }
 });
+
+// client.on('interactionCreate', interaction => {
+// 	if (!interaction.isButton) return;
+
+// 	console.log(interaction);
+
+// 	const collector = interaction.channel.createMessageComponentCollector({
+// 		filter: iFilter,
+// 		time: 15000,
+// 	});
+
+// 	collector.on('collect', async i => {
+// 		if (i.customId === 'bjGachi1') {
+// 			// await i.update({ content: 'A button was clicked!', components: [] });
+// 			await i.channel.send('uh, get out of that jabroni outfit.');
+// 		}
+// 	});
+
+// 	collector.on('end', collected => console.log(`Collected ${collected.size} items`));
+// });
 
 client.login(token);
 

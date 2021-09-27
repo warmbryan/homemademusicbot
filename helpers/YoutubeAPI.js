@@ -1,5 +1,4 @@
 const axios = require('axios').default;
-
 const { ytkey } = require('../config.json');
 
 const playlistUrlRe = /^-(p|play) https:\/\/www\.youtube\.com\/playlist\?list=(?<playlistId>[-_A-Za-z0-9]+)$/;
@@ -55,10 +54,28 @@ function craftVideoUrl(videoId) {
     return 'https://www.youtube.com/watch?v=' + videoId;
 }
 
+function getVideoBlockedStatus(videoId, callback) {
+    return axios.get(
+        'https://youtube.googleapis.com/youtube/v3/videos',
+        {
+            params: {
+                key: ytkey,
+                part: 'snippet,contentDetails,statistics',
+                id: videoId
+            },
+            responseType: 'json',
+        }
+    )
+        .then(response)
+        .catch(err)
+        .finally(console.log());
+}
+
 module.exports = {
     getQuerySearchReults,
     getVideoInfo,
     getPlaylistVideos,
     craftVideoUrl,
+    getVideoBlockedStatus,
     comboRe,
 }

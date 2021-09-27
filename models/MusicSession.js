@@ -1,7 +1,8 @@
-const { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, entersState, VoiceConnectionStatus, AudioPlayer } = require('@discordjs/voice');
+const { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const fs = require('fs');
 const ytdl = require('ytdl-core-discord');
-const prism = require('prism-media');
-const { pipeline } = require('stream');
+// const { FFmpegCommand, FFmpegInput, FFmpegOutput } = require('@tedconf/fessonia')();
+// const { v4: uuidv4 } = require('uuid');
 
 const ytdlOptions = {
 	filter: 'audioonly',
@@ -26,9 +27,10 @@ class MusicSession {
 		this.currentStream = undefined;
 
 		this.player.on('stateChange', (oldState, newState) => {
-			if (newState.status === AudioPlayerStatus.Idle && newState.status === AudioPlayerStatus.Playing) {
+			if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
 				if (this.queue.length > 0) {
-					this.playMusic(this.getNextMusic());
+					// this.removeCurrentMediaFile();
+					this.playVideo(this.getNextVideo());
 				}
 				else {
 					this.currentVideo = undefined;
@@ -51,80 +53,106 @@ class MusicSession {
 			.catch(console.warn);
 	}
 
+	removeCurrentMediaFile() {
+		const filename = this.currentVideo.getMediaFilename();
+		for (const format in ['.webm', '-s.webm']) {
+			try {
+				fs.unlinkSync('.\\media_cache\\' + filename + format);
+			}
+			catch (err) {
+				console.warn(err);
+			}
+		}
+	}
+
 	play(video) {
 		clearTimeout(this.inactivityTimeout);
 		if (this.player.state.status === AudioPlayerStatus.Idle && this.currentVideo === undefined) {
-			this.playMusic(video);
+			this.playVideo(video);
 		}
 		else {
 			this.queue.push(video);
 		}
 	}
 
-	getNextMusic() {
-		const music = this.queue.shift();
-		this.queueHistory.push(music);
-		return music;
+	getNextVideo() {
+		this.queueHistory.push(this.currentVideo);
+		const video = this.queue.shift();
+		this.currentVideo = video;
+		return this.currentVideo;
 	}
 
-	async playMusic(video) {
+	async playVideo(video) {
 		this.currentVideo = video;
 		this.currentVideo.getMessage().channel.send('Playing `' + this.currentVideo.getTitle() + '`.');
-		this.currentStream = await ytdl(video.getUrl(), ytdlOptions);
+
+		// standard method
+		this.currentStream = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
 		this.resource = createAudioResource(this.currentStream);
 		this.player.play(this.resource);
+
+		// const newMediaFilename = uuidv4().toString();
+		// this.currentVideo.setMediaFilename(newMediaFilename);
+		// ytdl(this.currentVideo.getUrl(), ytdlOptions)
+		// 	.pipe(fs.createWriteStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm'))
+		// 	.on('finish', () => {
+		// 		this.resource = createAudioResource('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm', { inputType: StreamType.WebmOpus });
+		// 		this.player.play(this.resource);
+		// 	});
 	}
 
 	async seek(seekTime) {
-		const videoInfo = await ytdl.getInfo(this.currentVideo.getUrl(), ytdlOptions);
+		console.log(seekTime);
 
-		// thanks https://github.com/amishshah/ytdl-core-discord/blob/2e0148255165c832e123579427abeeb20c54384c/index.js#L17
-		let filter = format => format.audioBitrate;
-		if (videoInfo.isLive) filter = format => format.audioBitrate && format.isHLS;
-		videoInfo.formats = videoInfo.formats
-			.filter(filter)
-			.sort((a, b) => b.audioBitrate - a.audioBitrate);
-		const finalFormat = videoInfo.formats.find(format => !format.bitrate) || videoInfo.formats[0];
+		// const ffin = new FFmpegInput('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm');
+		// const ffout = new FFmpegOutput('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '-s.webm', {
+		// 	'c:a': 'copy',
+		// 	'ss': seekTime,
+		// });
 
-		// PCM seeking
-		const transcoder = await new prism.FFmpeg({
-			args: [
-				'-reconnect', '1',
-				'-reconnect_streamed', '1',
-				'-reconnect_delay_max', '5',
-				'-i', finalFormat.url,
-				'-analyzeduration', '0',
-				'-loglevel', '0',
-				'-f', 's16le',
-				'-ar', '48000',
-				'-ac', '2',
-				'-ss', seekTime,
-			],
-			shell: false,
-		});
+		// const cmd = new FFmpegCommand();
+		// cmd.addInput(ffin);
+		// cmd.addOutput(ffout);
 
-		const opus = new prism.opus.Encoder({ frameSize: 960, channels: 2, rate: 48000 });
+		// cmd.on('update', () => {
+		// 	// console.log(`Received update on ffmpeg process:`, data);
+		// 	// handle the update here
+		// });
 
-		const newStream2 = await pipeline([transcoder, opus], () => {
-			// nothing to see here
-			// console.log(err);
-		});
+		// cmd.on('success', () => {
+		// 	// when the media processing is done
+		// 	// assert(data.exitCode === 0);
+		// 	// assert(data.hasOwnProperty('progress'));
+		// 	// assert(data.progress.hasOwnProperty('progressData'));
+		// 	// console.log(`Completed successfully with exit code ${data.exitCode}`, data.progress.progressData);
 
-		// const newStream = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
-		const newResource = createAudioResource(newStream2);
-		this.player.play(newResource);
+		// 	// handle the success here
+		// 	this.resource = createAudioResource('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '-s.webm', { inputType: StreamType.WebmOpus });
+		// 	this.player.play(this.resource);
+		// });
+
+		// cmd.on('error', (err) => {
+		// 	console.log(err.message, err.stack);
+		// 	// inspect and handle the error here
+		// });
+
+		// cmd.spawn();
+		// this.currentStream2 = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
+
+		// const transcoder = new prism.FFmpeg({
+		// 	args: [
+		// 		'-analyzeduration', '0',
+		// 		'-loglevel', '0',
+		// 		'-c:a', 'copy',
+		// 		'-ss', seekTime,
+		// 	],
+		// });
+
+		// const pipe2 = this.currentStream2.pipe(transcoder);
 	}
 
-	skip(message) {
+	skip() {
 		this.player.stop();
-
-		// if (this.queue.length > 0) {
-		// 	message.channel.send('Skipped current song.');
-		// 	this.playMusic(this.getNextMusic());
-		// }
-		// else {
-		// 	message.channel.send('Skipped current song. No music in queue, add some songs!');
-		// }
 	}
 
 	pause() {

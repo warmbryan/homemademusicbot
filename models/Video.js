@@ -20,6 +20,14 @@ class Video {
 	getMessage() {
 		return this.message;
 	}
+
+	setMediaFilename(vMediaFilename) {
+		this.mediaFilename = vMediaFilename;
+	}
+
+	getMediaFilename() {
+		return this.mediaFilename;
+	}
 }
 
 module.exports = Video;
