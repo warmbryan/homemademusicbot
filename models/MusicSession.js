@@ -35,7 +35,7 @@ class MusicSession {
 					this.currentVideo = undefined;
 					this.currentStream = undefined;
 					this.inactivityTimeout = setTimeout(() => {
-						this.queueHistory('I will make my leave here, type `-join` or play something to start a new session. Maximum 5 minutes idle time.')
+						this.queueHistory[this.queueHistory.length - 1].getMessage().channel.send('I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
 						this.connection.destroy();
 					}, (5 * 60 * 1000));
 				}
