@@ -40,9 +40,20 @@ class MusicSession {
 					this.resource = undefined;
 
 					this.inactivityTimeout = setTimeout(async () => {
-						await this.queueHistory.pop().getMessage().channel.send('I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
-						this.connection.destroy();
-						delete this;
+						try {
+							if (this.queueHistory.length > 0) {
+								const lastPlayedMedia = this.queueHistory.pop();
+								const messageObj = lastPlayedMedia.getMessage();
+								await messageObj.channel.send('I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
+							}
+						}
+						catch (e) {
+							console.warn(e);
+						}
+						finally {
+							this.connection.destroy();
+							delete this;
+						}
 					}, (5 * 60 * 1000));
 				}
 			}
@@ -54,6 +65,13 @@ class MusicSession {
 			})
 			// TODO: Maybe something to reconnect?
 			.catch(console.warn);
+	}
+
+	getLastVideo() {
+		if (this.queueHistory.length) {
+			return this.queueHistory[this.queueHistory.length - 1];
+		}
+		return null;
 	}
 
 	removeCurrentMediaFile() {
@@ -185,8 +203,8 @@ class MusicSession {
 	}
 
 	clear() {
-		this.queue.clear();
-		this.queueHistory.clear();
+		this.queue = [];
+		this.queueHistory = [];
 		this.player.stop();
 	}
 }
