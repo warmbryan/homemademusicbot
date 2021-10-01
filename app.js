@@ -219,6 +219,11 @@ client.on('messageCreate', message => {
 			message.channel.send({ embeds: [embedMsg] });
 		});
 	}
+	else if (message.content.startsWith(`${prefix}getvideo`)) {
+		checkSession(message, false, session => {
+			session.getLastVideo();
+		});
+	}
 	// else if (message.content.startsWith(`${prefix}bruh`)) {
 	// 	const row = new MessageActionRow()
 	// 		.addComponents(
