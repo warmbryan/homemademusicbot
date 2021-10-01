@@ -182,7 +182,7 @@ client.on('messageCreate', message => {
 				// }
 			}
 			else {
-				return message.channel.send('Try -r|-remove {songId}|{keyword} with songs in the queue.');
+				return message.channel.send('Try `-r|-remove {songId}` with songs in the queue.');
 			}
 		});
 	}
@@ -213,7 +213,7 @@ client.on('messageCreate', message => {
 			const embedMsg = new MessageEmbed()
 				.setTitle('Currently Playing')
 				.setURL(cVideo.getUrl())
-				.setDescription(cVideo.getTitle())
+				.setDescription(unescape(cVideo.getTitle()))
 				.setTimestamp();
 
 			message.channel.send({ embeds: [embedMsg] });
@@ -222,6 +222,14 @@ client.on('messageCreate', message => {
 	else if (message.content.startsWith(`${prefix}getvideo`)) {
 		checkSession(message, false, session => {
 			session.getLastVideo();
+		});
+	}
+
+	else if (message.content.startsWith(`${prefix}back`)) {
+		checkSession(message, false, session => {
+			// send in the nigger
+			const message1 = session.getVideoInfo();
+			message1.channel.send('it works, this channel is where you request the video.');
 		});
 	}
 	// else if (message.content.startsWith(`${prefix}bruh`)) {

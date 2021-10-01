@@ -106,10 +106,17 @@ class MusicSession {
 		this.currentVideo.getMessage().channel.send('Playing `' + this.currentVideo.getTitle() + '`.');
 
 		// standard method
-		this.currentStream = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
-		this.currentVideo.setMediaFilename(uuidv4().toString());
-		this.resource = createAudioResource(this.currentStream);
-		this.player.play(this.resource);
+		try {
+			this.currentStream = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
+			this.currentVideo.setMediaFilename(uuidv4().toString());
+			this.resource = createAudioResource(this.currentStream);
+			this.player.play(this.resource);
+		}
+		catch (exception) {
+			this.currentVideo().getMessage().channel.send('Something went wrong. Probably age restricted or blocked video. Fix coming soon.');
+			this.player.stop();
+			console.warn(exception);
+		}
 	}
 
 	async seek(seekTime) {
