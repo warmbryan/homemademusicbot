@@ -82,7 +82,7 @@ client.on('messageCreate', message => {
 						.then(response => {
 							if (response.status === 200 && response.data?.items.length > 0) {
 								response.data?.items.map(function(video) {
-									session.play(new Video(video.id, video.snippet.title, message));
+									session.play(new Video(video.id, unescape(video.snippet.title), message));
 									if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
 										message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
 									}
@@ -96,7 +96,7 @@ client.on('messageCreate', message => {
 						.then(response => {
 							if (response.status === 200 && response.data?.items.length > 0) {
 								response.data?.items.map(video => {
-									session.play(new Video(video.contentDetails.videoId, video.snippet.title, message));
+									session.play(new Video(video.contentDetails.videoId, unescape(video.snippet.title), message));
 								});
 
 								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
@@ -116,7 +116,7 @@ client.on('messageCreate', message => {
 							if (response.status === 200 && response.data?.items.length > 0) {
 								// grab first video
 								const video = response.data?.items[0];
-								session.play(new Video(video.id.videoId, video.snippet.title, message));
+								session.play(new Video(video.id.videoId, unescape(video.snippet.title), message));
 
 								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
 									message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
@@ -213,7 +213,7 @@ client.on('messageCreate', message => {
 			const embedMsg = new MessageEmbed()
 				.setTitle('Currently Playing')
 				.setURL(cVideo.getUrl())
-				.setDescription(unescape(cVideo.getTitle()))
+				.setDescription(cVideo.getTitle())
 				.setTimestamp();
 
 			message.channel.send({ embeds: [embedMsg] });
