@@ -113,7 +113,7 @@ class MusicSession {
 			this.player.play(this.resource);
 		}
 		catch (exception) {
-			this.currentVideo().getMessage().channel.send('Something went wrong. Probably age restricted or blocked video. Fix coming soon.');
+			this.currentVideo.getMessage().channel.send('Something went wrong. Probably age restricted or blocked video. Fix coming soon.');
 			this.player.stop();
 			console.warn(exception);
 		}
