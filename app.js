@@ -34,8 +34,9 @@ client.on('messageCreate', message => {
 
 	// ACTION JOIN
 	if (message.content.startsWith(`${prefix}join`)) {
-		checkSession(message, true, () => {
+		checkSession(message, true, session => {
 			// bruh
+			session.rejoin();
 		});
 
 		// const channel = message.member?.voice.channel;

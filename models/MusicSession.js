@@ -28,6 +28,8 @@ class MusicSession {
 		this.currentVideo = undefined;
 		this.currentStream = undefined;
 
+		this.channelId = channel.id;
+
 		this.player.on('stateChange', (oldState, newState) => {
 			if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
 				this.removeCurrentMediaFile();
@@ -170,6 +172,14 @@ class MusicSession {
 			this.connection.destroy();
 			throw error;
 		}
+	}
+
+	rejoin() {
+		this.connect()
+			.then(connection => {
+				connection.subscribe(this.player);
+			})
+			.catch(console.warn);
 	}
 
 	remove(index, message) {
