@@ -35,8 +35,8 @@ client.on('messageCreate', message => {
 	// ACTION JOIN
 	if (message.content.startsWith(`${prefix}join`)) {
 		checkSession(message, true, session => {
-			// bruh
-			session.rejoin();
+			// TODO: do a proper fix... '-join'
+			session.join();
 		});
 
 		// const channel = message.member?.voice.channel;
@@ -54,7 +54,8 @@ client.on('messageCreate', message => {
 	// ACTION SKIP
 	else if (message.content.startsWith(`${prefix}skip`)) {
 		checkSession(message, false, session => {
-			session.skip(message);
+			session.skip();
+			message.channel.send('Skipping current song.');
 		});
 	}
 	// ACTION PAUSE
@@ -68,7 +69,7 @@ client.on('messageCreate', message => {
 	else if (message.content.startsWith(`${prefix}unpause`)) {
 		checkSession(message, false, session => {
 			session.unpause();
-			message.channel.send('Music unpaused');
+			message.channel.send('Player unpaused');
 		});
 	}
 	// ACTION PLAY
@@ -156,7 +157,7 @@ client.on('messageCreate', message => {
 					msg += '```';
 				}
 				else {
-					msg = 'No music in queue, add some!';
+					msg = 'No songs in queue, add some!';
 				}
 
 				message.channel.send(msg);
@@ -228,9 +229,7 @@ client.on('messageCreate', message => {
 
 	else if (message.content.startsWith(`${prefix}back`)) {
 		checkSession(message, false, session => {
-			// send in the nigger
-			const message1 = session.getVideoInfo();
-			message1.channel.send('it works, this channel is where you request the video.');
+			session.back();
 		});
 	}
 	// else if (message.content.startsWith(`${prefix}bruh`)) {

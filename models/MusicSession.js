@@ -1,10 +1,20 @@
-const { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const {
+	AudioPlayerStatus,
+	VoiceConnectionStatus,
+	createAudioPlayer,
+	createAudioResource,
+	joinVoiceChannel,
+	entersState,
+	getVoiceConnection,
+} = require('@discordjs/voice');
 const fs = require('fs');
-const ytdl = require('ytdl-core-discord');
+
 // const { FFmpegCommand, FFmpegInput, FFmpegOutput } = require('@tedconf/fessonia')();
-const { v4: uuidv4 } = require('uuid');
-const prism = require('prism-media');
+
+const ytdl = require('ytdl-core-discord');
 const ytdl2 = require('ytdl-core');
+const prism = require('prism-media');
+const { v4: uuidv4 } = require('uuid');
 
 const ytdlOptions = {
 	filter: 'audioonly',
@@ -54,19 +64,13 @@ class MusicSession {
 						}
 						finally {
 							this.connection.destroy();
-							delete this;
 						}
 					}, (5 * 60 * 1000));
 				}
 			}
 		});
 
-		this.connect()
-			.then(connection => {
-				connection.subscribe(this.player);
-			})
-			// TODO: Maybe something to reconnect?
-			.catch(console.warn);
+		this.join();
 	}
 
 	getLastVideo() {
@@ -104,6 +108,7 @@ class MusicSession {
 	}
 
 	async playVideo(video) {
+		this.join();
 		this.currentVideo = video;
 		this.currentVideo.getMessage().channel.send('Playing `' + this.currentVideo.getTitle() + '`.');
 
@@ -137,6 +142,7 @@ class MusicSession {
 						'-ss', seekTime,
 					],
 				});
+
 				const seekedFile = file.pipe(transcoder);
 				const encodedFile = seekedFile.pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }));
 				this.resource = createAudioResource(encodedFile);
@@ -144,15 +150,18 @@ class MusicSession {
 			});
 	}
 
+	// skips the current playing song
 	skip() {
 		this.player.stop();
 		// this.currentVideo.getMessage().channel.send()
 	}
 
+	// pause the player
 	pause() {
 		this.player.pause();
 	}
 
+	// unpause the player
 	unpause() {
 		this.player.unpause();
 	}
@@ -174,14 +183,23 @@ class MusicSession {
 		}
 	}
 
-	rejoin() {
-		this.connect()
-			.then(connection => {
-				connection.subscribe(this.player);
-			})
-			.catch(console.warn);
+	join() {
+		try {
+			const newConnection = getVoiceConnection(this.channel.guild.id);
+			if (newConnection === undefined) {
+				this.connect()
+					.then(connection => {
+						connection.subscribe(this.player);
+					})
+					.catch(console.warn);
+			}
+		}
+		catch (error) {
+			console.warn(error);
+		}
 	}
 
+	// removes a song from the upcoming queue
 	remove(index, message) {
 		if (index <= this.queue.length) {
 			this.queue.splice(index - 1, 1);
@@ -197,6 +215,20 @@ class MusicSession {
 		if (this.connection !== undefined) {
 			this.connection.destroy();
 		}
+	}
+
+	// clears the player queue and stops the player
+	clear() {
+		this.queue = [];
+		this.queueHistory = [];
+		this.player.stop();
+	}
+
+	back() {
+		this.queue.unshift(this.currentVideo);
+		const previousSong = this.queueHistory.pop();
+		this.playVideo(previousSong);
+		return previousSong;
 	}
 
 	getQueue() {
@@ -217,12 +249,6 @@ class MusicSession {
 
 	getCurrentVideo() {
 		return this.currentVideo;
-	}
-
-	clear() {
-		this.queue = [];
-		this.queueHistory = [];
-		this.player.stop();
 	}
 }
 
