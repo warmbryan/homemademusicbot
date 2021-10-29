@@ -146,6 +146,7 @@ class MusicSession {
 			const examineMediaUrl = spawn(ytdlp_launch_command, ['-f', '250/bestaudio[acodec=opus]/bestaudio', '-o', `temp_media/${fileName}.%(ext)s`, this.currentVideo.getUrl()]);
 			examineMediaUrl.stdout.on('data', (data) => {
 				const message = data.toString().trim();
+				console.log(message);
 				const matchResult = message.match(/\[download\] Destination: temp_media\\(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
 				if (matchResult && matchResult.groups?.fileName) {
 					fileName = matchResult.groups?.fileName;
