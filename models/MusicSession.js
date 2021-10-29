@@ -158,6 +158,7 @@ class MusicSession {
 
 			examineMediaUrl.on('close', () => {
 				// console.log('child process closed.');
+				console.log(fileName);
 				this.resource = createAudioResource('./temp_media/' + fileName);
 				this.player.play(this.resource);
 			});
