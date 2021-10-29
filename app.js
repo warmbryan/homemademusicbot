@@ -18,9 +18,6 @@ const MusicSession = require('./models/MusicSession');
 const { Client, Intents, MessageEmbed } = require('discord.js');
 const { AudioPlayerStatus } = require('@discordjs/voice');
 
-// const YoutubeDlWrap = require('youtube-dl-wrap');
-// YoutubeDlWrap.downloadFromWebsite(ytdl_bin_path, ytdl_platform);
-
 const musicSessions = new Object();
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] });
 
@@ -38,13 +35,8 @@ client.on('messageCreate', message => {
 	// ACTION JOIN
 	if (message.content.startsWith(`${prefix}join`)) {
 		checkSession(message, true, session => {
-			// TODO: do a proper fix... '-join'
 			session.join();
 		});
-
-		// const channel = message.member?.voice.channel;
-		// if (!channel) return message.channel.send('I don\'t see you in a voice channel!');
-		// musicSessions[message.guild.id] = new MusicSession(channel);
 	}
 	// ACTION LEAVE
 	else if (message.content.startsWith(`${prefix}leave`)) {
@@ -234,41 +226,7 @@ client.on('messageCreate', message => {
 			session.back();
 		});
 	}
-	// else if (message.content.startsWith(`${prefix}bruh`)) {
-	// 	const row = new MessageActionRow()
-	// 		.addComponents(
-	// 			new MessageButton()
-	// 				.setCustomId('bjGachi1')
-	// 				.setLabel('Gachi Style')
-	// 				.setStyle('PRIMARY'),
-	// 		);
-
-	// 	// const filter = i =>
-	// 	iFilter = i => i.customId === 'bjGachi1' && i.user.id === message.author.id;
-
-	// 	return message.reply({ content: 'How you want me to do it?', components: [row] });
-	// }
 });
-
-// client.on('interactionCreate', interaction => {
-// 	if (!interaction.isButton) return;
-
-// 	console.log(interaction);
-
-// 	const collector = interaction.channel.createMessageComponentCollector({
-// 		filter: iFilter,
-// 		time: 15000,
-// 	});
-
-// 	collector.on('collect', async i => {
-// 		if (i.customId === 'bjGachi1') {
-// 			// await i.update({ content: 'A button was clicked!', components: [] });
-// 			await i.channel.send('uh, get out of that jabroni outfit.');
-// 		}
-// 	});
-
-// 	collector.on('end', collected => console.log(`Collected ${collected.size} items`));
-// });
 
 client.login(token);
 

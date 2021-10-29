@@ -235,8 +235,11 @@ class MusicSession {
 	}
 
 	leave() {
-		if (this.connection !== undefined) {
+		try {
 			this.connection.destroy();
+		}
+		catch (err) {
+			console.warn('Destroying already destroyed voice connection.');
 		}
 	}
 
