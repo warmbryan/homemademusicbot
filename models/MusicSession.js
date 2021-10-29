@@ -12,18 +12,7 @@ const fs = require('fs');
 
 const { ytdlp_launch_command } = require('../config.json');
 
-// const { FFmpegCommand, FFmpegInput, FFmpegOutput } = require('@tedconf/fessonia')();
-
-const ytdl = require('ytdl-core-discord');
 const { v4: uuidv4 } = require('uuid');
-
-const ytdlOptions = {
-	filter: 'audioonly',
-	quality: 'highestaudio',
-	highWaterMark: 1 << 28,
-	quiet: true,
-	no_warnings: true,
-};
 
 class MusicSession {
 	constructor(channel) {
@@ -70,7 +59,6 @@ class MusicSession {
 				}
 			}
 		});
-
 		this.join();
 	}
 
@@ -84,10 +72,10 @@ class MusicSession {
 	removeCurrentMediaFile() {
 		const fileName = this.currentVideo.getMediaFilename();
 		try {
-			fs.unlinkSync('.\\temp_media\\' + fileName);
+			fs.unlinkSync('./temp_media/' + fileName);
 		}
 		catch (err) {
-			// console.warn(err);
+			console.warn(err);
 		}
 	}
 
@@ -114,34 +102,20 @@ class MusicSession {
 		this.currentVideo.getMessage().channel.send('Playing `' + this.currentVideo.getTitle() + '`.');
 
 		// standard method
-		try {
-			this.currentStream = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
-			this.currentVideo.setMediaFilename(uuidv4().toString());
-			this.resource = createAudioResource(this.currentStream);
-			this.player.play(this.resource);
-		}
-		catch (exception) {
-			this.currentVideo.getMessage().channel.send('Something went wrong. Probably age restricted or blocked video. Fix coming soon.');
-			this.player.stop();
-			console.warn(exception);
-		}
-	}
-
-	play2(video) {
-		clearTimeout(this.inactivityTimeout);
-		if (this.player.state.status === AudioPlayerStatus.Idle && this.currentVideo === undefined) {
-			this.playVideo2(video);
-		}
-		else {
-			this.queue.push(video);
-		}
-	}
-
-	async playVideo2(video) {
-		this.join();
-		this.currentVideo = video;
+		// try {
+		// 	this.currentStream = await ytdl(this.currentVideo.getUrl(), ytdlOptions);
+		// 	this.currentVideo.setMediaFilename(uuidv4().toString());
+		// 	this.resource = createAudioResource(this.currentStream);
+		// 	this.player.play(this.resource);
+		// }
+		// catch (exception) {
+		// 	this.currentVideo.getMessage().channel.send('Something went wrong. Probably age restricted or blocked video. Fix coming soon.');
+		// 	this.player.stop();
+		// 	console.warn(exception);
+		// }
 
 		try {
+			let validPlay = false;
 			let fileName = uuidv4().toString();
 			const examineMediaUrl = spawn(ytdlp_launch_command, ['-f', '250/bestaudio[acodec=opus]/bestaudio', '-o', `temp_media/${fileName}.%(ext)s`, this.currentVideo.getUrl()]);
 			examineMediaUrl.stdout.on('data', (data) => {
@@ -149,6 +123,7 @@ class MusicSession {
 				const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
 				if (matchResult && matchResult.groups?.fileName) {
 					fileName = matchResult.groups?.fileName;
+					validPlay = true;
 				}
 			});
 
@@ -157,9 +132,14 @@ class MusicSession {
 			});
 
 			examineMediaUrl.on('close', () => {
-				// console.log('child process closed.');
-				this.resource = createAudioResource('./temp_media/' + fileName);
-				this.player.play(this.resource);
+				if (validPlay) {
+					// set media filename
+					this.currentVideo.setMediaFilename(fileName);
+
+					// play
+					this.resource = createAudioResource('./temp_media/' + fileName);
+					this.player.play(this.resource);
+				}
 			});
 		}
 		catch (exception) {

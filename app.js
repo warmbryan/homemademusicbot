@@ -139,28 +139,6 @@ client.on('messageCreate', message => {
 			return message.channel.send('Don\'t play nothing. :smile:');
 		}
 	}
-	else if (message.content.startsWith(`${prefix}bplay`)) {
-		checkSession(message, true, session => {
-			// testing
-			const simpleUrl = /^-bplay (?<videoUrl>https:\/\/www.youtube.com\/watch\?v=(?<videoId>[-_A-Za-z0-9]{11}))$/;
-			const result = message.content.match(simpleUrl);
-			if (result) {
-				getVideoInfo(result.groups?.videoId)
-					.then(response => {
-						if (response.status === 200 && response.data?.items.length > 0) {
-							response.data?.items.map(function(video) {
-								session.play2(new Video(video.id, unescape(video.snippet.title), message));
-								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
-									message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
-								}
-							});
-						}
-					})
-					.catch(console.warn);
-			}
-		});
-	}
-	// ACTION STATUS
 	else if (message.content.startsWith(`${prefix}status`)) {
 		checkSession(message, false, session => {
 			message.channel.send(`Status: ${session.getPlayerStatus()}, Duration: ${session.getPlayerDuration()}ms`);
@@ -186,8 +164,8 @@ client.on('messageCreate', message => {
 
 				message.channel.send(msg);
 			}
-			catch (err) {
-				// nothing
+			catch (error) {
+				console.warn(error);
 			}
 		});
 	}
@@ -213,9 +191,9 @@ client.on('messageCreate', message => {
 		});
 	}
 	else if (message.content.startsWith(`${prefix}help`) || message.content.startsWith(`${prefix}H`)) {
-		// TODO: list the commands
 		helpCommand(message);
 	}
+	// TODO: rebuild seek command
 	// else if (message.content.startsWith(`${prefix}seek`)) {
 	// 	checkSession(message, false, session => {
 	// 		const seekValueMatch = message.content.match(seekRe);
