@@ -3,3 +3,5 @@ node_modules
 config.json
 .eslintrc.json
 media_cache
+binaries
+temp_media

@@ -7,13 +7,14 @@ const {
 	entersState,
 	getVoiceConnection,
 } = require('@discordjs/voice');
+const { spawn } = require('child_process');
 const fs = require('fs');
+
+const { ytdlp_launch_command } = require('../config.json');
 
 // const { FFmpegCommand, FFmpegInput, FFmpegOutput } = require('@tedconf/fessonia')();
 
 const ytdl = require('ytdl-core-discord');
-const ytdl2 = require('ytdl-core');
-const prism = require('prism-media');
 const { v4: uuidv4 } = require('uuid');
 
 const ytdlOptions = {
@@ -81,9 +82,9 @@ class MusicSession {
 	}
 
 	removeCurrentMediaFile() {
-		const filename = this.currentVideo.getMediaFilename();
+		const fileName = this.currentVideo.getMediaFilename();
 		try {
-			fs.unlinkSync('.\\media_cache\\' + filename + '.webm');
+			fs.unlinkSync('.\\temp_media\\' + fileName);
 		}
 		catch (err) {
 			// console.warn(err);
@@ -126,29 +127,71 @@ class MusicSession {
 		}
 	}
 
-	async seek(seekTime) {
-		console.log('seeked:', seekTime);
-		ytdl2(this.currentVideo.getUrl(), ytdlOptions)
-			.pipe(fs.createWriteStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm'))
-			.on('finish', () => {
-				const file = fs.createReadStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm');
-				const transcoder = new prism.FFmpeg({
-					args: [
-						'-analyzeduration', '0',
-						'-loglevel', '0',
-						'-f', 's16le',
-						'-ar', '48000',
-						'-ac', '2',
-						'-ss', seekTime,
-					],
-				});
+	play2(video) {
+		clearTimeout(this.inactivityTimeout);
+		if (this.player.state.status === AudioPlayerStatus.Idle && this.currentVideo === undefined) {
+			this.playVideo2(video);
+		}
+		else {
+			this.queue.push(video);
+		}
+	}
 
-				const seekedFile = file.pipe(transcoder);
-				const encodedFile = seekedFile.pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }));
-				this.resource = createAudioResource(encodedFile);
+	async playVideo2(video) {
+		this.join();
+		this.currentVideo = video;
+
+		try {
+			let fileName = uuidv4().toString();
+			const examineMediaUrl = spawn(ytdlp_launch_command, ['-f', '250/bestaudio[acodec=opus]/bestaudio', '-o', `temp_media/${fileName}.%(ext)s`, this.currentVideo.getUrl()]);
+			examineMediaUrl.stdout.on('data', (data) => {
+				const message = data.toString().trim();
+				const matchResult = message.match(/\[download\] Destination: temp_media\\(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
+				if (matchResult && matchResult.groups?.fileName) {
+					fileName = matchResult.groups?.fileName;
+				}
+			});
+
+			examineMediaUrl.stderr.on('data', (data) => {
+				console.warn(data.toString());
+			});
+
+			examineMediaUrl.on('close', () => {
+				// console.log('child process closed.');
+				this.resource = createAudioResource('temp_media/' + fileName);
 				this.player.play(this.resource);
 			});
+		}
+		catch (exception) {
+			this.currentVideo.getMessage().channel.send('Something went wrong.');
+			this.player.stop();
+			console.warn(exception);
+		}
 	}
+
+	// async seek(seekTime) {
+	// 	console.log('seeked:', seekTime);
+	// 	ytdl2(this.currentVideo.getUrl(), ytdlOptions)
+	// 		.pipe(fs.createWriteStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm'))
+	// 		.on('finish', () => {
+	// 			const file = fs.createReadStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm');
+	// 			const transcoder = new prism.FFmpeg({
+	// 				args: [
+	// 					'-analyzeduration', '0',
+	// 					'-loglevel', '0',
+	// 					'-f', 's16le',
+	// 					'-ar', '48000',
+	// 					'-ac', '2',
+	// 					'-ss', seekTime,
+	// 				],
+	// 			});
+
+	// 			const seekedFile = file.pipe(transcoder);
+	// 			const encodedFile = seekedFile.pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }));
+	// 			this.resource = createAudioResource(encodedFile);
+	// 			this.player.play(this.resource);
+	// 		});
+	// }
 
 	// skips the current playing song
 	skip() {

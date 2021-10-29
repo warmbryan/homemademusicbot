@@ -1,7 +1,7 @@
 {
   "name": "musicbotjs",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple music bot for me to play music.",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -12,16 +12,11 @@
   "dependencies": {
     "@discordjs/opus": "^0.5.3",
     "@discordjs/voice": "^0.6.0",
-    "@tedconf/fessonia": "^2.2.1",
     "axios": "^0.21.4",
     "discord.js": "^13.1.0",
-    "ffmpeg-static": "^4.4.0",
-    "js-ffmpeg": "^0.0.30",
     "libsodium-wrappers": "^0.7.9",
     "node": "16.9.1",
-    "prism-media": "^1.3.2",
     "uuid": "^8.3.2",
-    "youtube-dl-exec": "^1.2.6",
     "ytdl-core": "^4.9.1",
     "ytdl-core-discord": "^1.3.1"
   },

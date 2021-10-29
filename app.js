@@ -5,25 +5,28 @@ const { token, prefix } = require('./config.json');
 
 // helpers
 const { comboRe, getPlaylistVideos, getVideoInfo, getQuerySearchReults } = require('./helpers/YoutubeAPI');
-const { removeFromQueueRe, seekRe } = require('./helpers/CommandsRE');
+const { removeFromQueueRe } = require('./helpers/CommandsRE');
+
+// commands
+const helpCommand = require('./commands/help');
 
 // models
 const Video = require('./models/Video');
-
-const { Client, Intents, MessageEmbed } = require('discord.js');
 const MusicSession = require('./models/MusicSession');
+
+// imports
+const { Client, Intents, MessageEmbed } = require('discord.js');
 const { AudioPlayerStatus } = require('@discordjs/voice');
+
+// const YoutubeDlWrap = require('youtube-dl-wrap');
+// YoutubeDlWrap.downloadFromWebsite(ytdl_bin_path, ytdl_platform);
 
 const musicSessions = new Object();
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] });
 
-const helpCommand = require('./commands/help');
-
-// const { MessageActionRow, MessageButton } = require('discord.js');
-// let iFilter = undefined;
-
 client.once('ready', () => {
 	console.log('Ready!');
+
 	// TODO: add resume from crash, get active streams from db and join back to the voice channel at will reconnect and continue left over songs
 	// when i start implementing stateful sessions using mysql
 });
@@ -136,6 +139,27 @@ client.on('messageCreate', message => {
 			return message.channel.send('Don\'t play nothing. :smile:');
 		}
 	}
+	else if (message.content.startsWith(`${prefix}bplay`)) {
+		checkSession(message, true, session => {
+			// testing
+			const simpleUrl = /^-bplay (?<videoUrl>https:\/\/www.youtube.com\/watch\?v=(?<videoId>[-_A-Za-z0-9]{11}))$/;
+			const result = message.content.match(simpleUrl);
+			if (result) {
+				getVideoInfo(result.groups?.videoId)
+					.then(response => {
+						if (response.status === 200 && response.data?.items.length > 0) {
+							response.data?.items.map(function(video) {
+								session.play2(new Video(video.id, unescape(video.snippet.title), message));
+								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
+									message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
+								}
+							});
+						}
+					})
+					.catch(console.warn);
+			}
+		});
+	}
 	// ACTION STATUS
 	else if (message.content.startsWith(`${prefix}status`)) {
 		checkSession(message, false, session => {
@@ -192,17 +216,17 @@ client.on('messageCreate', message => {
 		// TODO: list the commands
 		helpCommand(message);
 	}
-	else if (message.content.startsWith(`${prefix}seek`)) {
-		checkSession(message, false, session => {
-			const seekValueMatch = message.content.match(seekRe);
-			if (seekValueMatch && seekValueMatch.groups?.seekTime !== undefined) {
-				session.seek(seekValueMatch.groups?.seekTime);
-			}
-			else {
-				message.channel.send('Invalid seek format.');
-			}
-		});
-	}
+	// else if (message.content.startsWith(`${prefix}seek`)) {
+	// 	checkSession(message, false, session => {
+	// 		const seekValueMatch = message.content.match(seekRe);
+	// 		if (seekValueMatch && seekValueMatch.groups?.seekTime !== undefined) {
+	// 			session.seek(seekValueMatch.groups?.seekTime);
+	// 		}
+	// 		else {
+	// 			message.channel.send('Invalid seek format.');
+	// 		}
+	// 	});
+	// }
 	else if (message.content.startsWith(`${prefix}clear`)) {
 		checkSession(message, false, session => {
 			session.clear();
