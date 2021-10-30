@@ -162,18 +162,19 @@ class MusicSession {
 
 	// skips the current playing song
 	skip() {
-		if (this.queue.length) {
+		if ((this.player.state.status === AudioPlayerStatus.Playing) || (this.player.state.status === AudioPlayerStatus.Buffering) || (this.queue.length > 0)) {
 			this.player.stop();
+			return true;
 		}
-		return this.queue.length > 0;
+		else {
+			return false;
+		}
 	}
 
-	// pause the player
 	pause() {
 		this.player.pause();
 	}
 
-	// unpause the player
 	unpause() {
 		this.player.unpause();
 	}
