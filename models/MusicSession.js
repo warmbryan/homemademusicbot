@@ -236,6 +236,7 @@ class MusicSession {
 
 	leave() {
 		try {
+			clearTimeout(this.inactivityTimeout);
 			this.connection.destroy();
 		}
 		catch (err) {
