@@ -21,6 +21,10 @@ const { AudioPlayerStatus } = require('@discordjs/voice');
 const musicSessions = new Object();
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] });
 
+String.prototype.unescapeHTML = function() {
+	return String(this).replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"').replace('&#39;', '\'').replace('&#x2F;', '/');
+};
+
 client.once('ready', () => {
 	console.log('Ready!');
 
@@ -33,13 +37,13 @@ client.on('messageCreate', message => {
 	if (!message.content.startsWith(prefix)) return;
 
 	// ACTION JOIN
-	if (message.content.startsWith(`${prefix}join`)) {
+	if (message.content.startsWith(`${prefix}join `)) {
 		checkSession(message, true, session => {
 			session.join();
 		});
 	}
 	// ACTION LEAVE
-	else if (message.content.startsWith(`${prefix}leave`)) {
+	else if (message.content.startsWith(`${prefix}leave `)) {
 		checkSession(message, false, async session => {
 			await session.leave();
 			clearSession(message.guild.id);
@@ -47,29 +51,28 @@ client.on('messageCreate', message => {
 		});
 	}
 	// ACTION SKIP
-	else if (message.content.startsWith(`${prefix}skip`)) {
+	else if (message.content.startsWith(`${prefix}skip `)) {
 		checkSession(message, false, session => {
 			session.skip();
 			message.channel.send('Skipping current song.');
 		});
 	}
 	// ACTION PAUSE
-	else if (message.content.startsWith(`${prefix}pause`)) {
+	else if (message.content.startsWith(`${prefix}pause `)) {
 		checkSession(message, false, session => {
 			session.pause();
 			message.channel.send('Player paused, use `-unpause` to unpause the player.');
 		});
 	}
 	// ACTION UNPAUSE
-	else if (message.content.startsWith(`${prefix}unpause`)) {
+	else if (message.content.startsWith(`${prefix}unpause `)) {
 		checkSession(message, false, session => {
 			session.unpause();
 			message.channel.send('Player unpaused');
 		});
 	}
 	// ACTION PLAY
-	else if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
-		// join channel if not joinned yet
+	else if (message.content.startsWith(`${prefix}play `) || message.content.startsWith(`${prefix}p `)) {
 		const youtubeUrlMatch = message.content.match(comboRe);
 		if (youtubeUrlMatch) {
 			checkSession(message, true, session => {
@@ -81,7 +84,7 @@ client.on('messageCreate', message => {
 								response.data?.items.map(function(video) {
 									session.play(new Video(video.id, unescape(video.snippet.title), message));
 									if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
-										message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
+										message.channel.send(`Added \`${video.snippet.title.unescapeHTML()}\` to the queue.`);
 									}
 								});
 							}
@@ -116,7 +119,7 @@ client.on('messageCreate', message => {
 								session.play(new Video(video.id.videoId, unescape(video.snippet.title), message));
 
 								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
-									message.channel.send(`Added \`${video.snippet.title}\` to the queue.`);
+									message.channel.send(`Added \`${video.snippet.title.unescapeHTML()}\` to the queue.`);
 								}
 							}
 							else {
@@ -131,13 +134,13 @@ client.on('messageCreate', message => {
 			return message.channel.send('Don\'t play nothing. :smile:');
 		}
 	}
-	else if (message.content.startsWith(`${prefix}status`)) {
+	else if (message.content.startsWith(`${prefix}status `)) {
 		checkSession(message, false, session => {
 			message.channel.send(`Status: ${session.getPlayerStatus()}, Duration: ${session.getPlayerDuration()}ms`);
 		});
 	}
 	// ACTION QUEUE
-	else if (message.content.startsWith(`${prefix}queue`)) {
+	else if (message.content.startsWith(`${prefix}queue `)) {
 		checkSession(message, false, session => {
 			try {
 				const queue = session.getQueue();
@@ -162,7 +165,7 @@ client.on('messageCreate', message => {
 		});
 	}
 	// ACTION REMOVE
-	else if (message.content.startsWith(`${prefix}remove`) || message.content.startsWith(`${prefix}r`)) {
+	else if (message.content.startsWith(`${prefix}remove `) || message.content.startsWith(`${prefix}r `)) {
 		checkSession(message, false, session => {
 			const reMatch = message.content.match(removeFromQueueRe);
 			if (reMatch) {
@@ -182,7 +185,7 @@ client.on('messageCreate', message => {
 			}
 		});
 	}
-	else if (message.content.startsWith(`${prefix}help`) || message.content.startsWith(`${prefix}H`)) {
+	else if (message.content.startsWith(`${prefix}help `) || message.content.startsWith(`${prefix}H `)) {
 		helpCommand(message);
 	}
 	// TODO: rebuild seek command
