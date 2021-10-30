@@ -162,8 +162,10 @@ class MusicSession {
 
 	// skips the current playing song
 	skip() {
-		this.player.stop();
-		// this.currentVideo.getMessage().channel.send()
+		if (this.queue.length) {
+			this.player.stop();
+		}
+		return this.queue.length > 0;
 	}
 
 	// pause the player
@@ -224,7 +226,13 @@ class MusicSession {
 	leave() {
 		try {
 			clearTimeout(this.inactivityTimeout);
-			this.connection.destroy();
+			if (getVoiceConnection(this.channel.guild.id) != undefined) {
+				this.connection.destroy();
+				return true;
+			}
+			else {
+				return false;
+			}
 		}
 		catch (err) {
 			console.warn('Destroying already destroyed voice connection.');

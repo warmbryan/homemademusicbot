@@ -1,9 +1,5 @@
 const axios = require('axios').default;
 const { ytkey } = require('../config.json');
-
-const playlistUrlRe = /^-(p|play) https:\/\/www\.youtube\.com\/playlist\?list=(?<playlistId>[-_A-Za-z0-9]+)$/;
-const videoUrlRe = /^-(p|play) (?<videoUrl>https:\/\/www.youtube.com\/watch\?v=(?<videoId>[-_A-Za-z0-9]{11}))$/;
-
 const comboRe = /(^-(p|play) (?<playlistUrl>https:\/\/www\.youtube\.com\/playlist\?list=(?<playlistId>[-_A-Za-z0-9]+))$)|(^-(p|play) (?<videoUrl>https:\/\/www.youtube.com\/watch\?v=(?<videoId>[-_A-Za-z0-9]{11}))$)|(^-(p|play) (?<keyword>[\w \W]{3,40})$)/
 
 function getPlaylistVideos(playlistId) {

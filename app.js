@@ -45,16 +45,18 @@ client.on('messageCreate', message => {
 	// ACTION LEAVE
 	else if (message.content.startsWith(`${prefix}leave `)) {
 		checkSession(message, false, async session => {
-			await session.leave();
+			if (session.leave()) {
+				message.channel.send('See you later.');
+			}
 			clearSession(message.guild.id);
-			message.channel.send('See you later.');
 		});
 	}
 	// ACTION SKIP
 	else if (message.content.startsWith(`${prefix}skip `)) {
 		checkSession(message, false, session => {
-			session.skip();
-			message.channel.send('Skipping current song.');
+			if (session.skip()) {
+				message.channel.send('Skipping current song.');
+			}
 		});
 	}
 	// ACTION PAUSE
@@ -73,66 +75,9 @@ client.on('messageCreate', message => {
 	}
 	// ACTION PLAY
 	else if (message.content.startsWith(`${prefix}play `) || message.content.startsWith(`${prefix}p `)) {
-		const youtubeUrlMatch = message.content.match(comboRe);
-		if (youtubeUrlMatch) {
-			checkSession(message, true, session => {
-				if (youtubeUrlMatch.groups?.videoUrl !== undefined) {
-					// add new songs to queue
-					getVideoInfo(youtubeUrlMatch.groups?.videoId)
-						.then(response => {
-							if (response.status === 200 && response.data?.items.length > 0) {
-								response.data?.items.map(function(video) {
-									session.play(new Video(video.id, unescape(video.snippet.title), message));
-									if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
-										message.channel.send(`Added \`${video.snippet.title.unescapeHTML()}\` to the queue.`);
-									}
-								});
-							}
-						})
-						.catch(console.warn);
-				}
-				else if (youtubeUrlMatch.groups?.playlistUrl !== undefined) {
-					getPlaylistVideos(youtubeUrlMatch.groups?.playlistId)
-						.then(response => {
-							if (response.status === 200 && response.data?.items.length > 0) {
-								response.data?.items.map(video => {
-									session.play(new Video(video.contentDetails.videoId, unescape(video.snippet.title), message));
-								});
-
-								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
-									message.channel.send(`Added \`${response.data?.items.length}\` videos to queue.`);
-								}
-								else {
-									message.channel.send(`Added \`${response.data?.items.length - 1}\` videos to queue.`);
-								}
-							}
-						})
-						.catch(console.warn);
-				}
-				// Keyword query
-				else if (youtubeUrlMatch.groups?.keyword !== undefined) {
-					getQuerySearchReults(youtubeUrlMatch.groups?.keyword, 5)
-						.then(response => {
-							if (response.status === 200 && response.data?.items.length > 0) {
-								// grab first video
-								const video = response.data?.items[0];
-								session.play(new Video(video.id.videoId, unescape(video.snippet.title), message));
-
-								if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
-									message.channel.send(`Added \`${video.snippet.title.unescapeHTML()}\` to the queue.`);
-								}
-							}
-							else {
-								message.channel.send('No videos found with the keyword you have entered.');
-							}
-						})
-						.catch(console.warn);
-				}
-			});
-		}
-		else {
-			return message.channel.send('Don\'t play nothing. :smile:');
-		}
+		checkSession(message, true, session => {
+			playCommand(message, session);
+		});
 	}
 	else if (message.content.startsWith(`${prefix}status `)) {
 		checkSession(message, false, session => {
@@ -266,5 +211,63 @@ function checkSession(message, autoCreateNewSession, callback) {
 function clearSession(guildId) {
 	if (guildId in musicSessions) {
 		delete musicSessions[guildId];
+	}
+}
+
+function playCommand(message, session) {
+	const youtubeUrlMatch = message.content.match(comboRe);
+	if (youtubeUrlMatch) {
+		if (youtubeUrlMatch.groups?.videoUrl !== undefined) {
+			// add new songs to queue
+			getVideoInfo(youtubeUrlMatch.groups?.videoId)
+				.then(response => {
+					if (response.status === 200 && response.data?.items.length > 0) {
+						response.data?.items.map(function(video) {
+							session.play(new Video(video.id, unescape(video.snippet.title), message));
+							if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
+								message.channel.send(`Added \`${video.snippet.title.unescapeHTML()}\` to the queue.`);
+							}
+						});
+					}
+				})
+				.catch(console.warn);
+		}
+		else if (youtubeUrlMatch.groups?.playlistUrl !== undefined) {
+			getPlaylistVideos(youtubeUrlMatch.groups?.playlistId)
+				.then(response => {
+					if (response.status === 200 && response.data?.items.length > 0) {
+						response.data?.items.map(video => {
+							session.play(new Video(video.contentDetails.videoId, unescape(video.snippet.title), message));
+						});
+
+						if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
+							message.channel.send(`Added \`${response.data?.items.length}\` videos to queue.`);
+						}
+						else {
+							message.channel.send(`Added \`${response.data?.items.length - 1}\` videos to queue.`);
+						}
+					}
+				})
+				.catch(console.warn);
+		}
+		// Keyword query
+		else if (youtubeUrlMatch.groups?.keyword !== undefined) {
+			getQuerySearchReults(youtubeUrlMatch.groups?.keyword, 5)
+				.then(response => {
+					if (response.status === 200 && response.data?.items.length > 0) {
+						// grab first video
+						const video = response.data?.items[0];
+						session.play(new Video(video.id.videoId, unescape(video.snippet.title), message));
+
+						if (session.getPlayerStatus() === (AudioPlayerStatus.Playing || AudioPlayerStatus.Buffering)) {
+							message.channel.send(`Added \`${video.snippet.title.unescapeHTML()}\` to the queue.`);
+						}
+					}
+					else {
+						message.channel.send('No videos found with the keyword you have entered.');
+					}
+				})
+				.catch(console.warn);
+		}
 	}
 }
