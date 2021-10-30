@@ -37,13 +37,13 @@ client.on('messageCreate', message => {
 	if (!message.content.startsWith(prefix)) return;
 
 	// ACTION JOIN
-	if (message.content.startsWith(`${prefix}join `)) {
+	if (message.content.startsWith(`${prefix}join`)) {
 		checkSession(message, true, session => {
 			session.join();
 		});
 	}
 	// ACTION LEAVE
-	else if (message.content.startsWith(`${prefix}leave `)) {
+	else if (message.content.startsWith(`${prefix}leave`)) {
 		checkSession(message, false, async session => {
 			if (session.leave()) {
 				message.channel.send('See you later.');
@@ -52,7 +52,7 @@ client.on('messageCreate', message => {
 		});
 	}
 	// ACTION SKIP
-	else if (message.content.startsWith(`${prefix}skip `)) {
+	else if (message.content.startsWith(`${prefix}skip`)) {
 		checkSession(message, false, session => {
 			if (session.skip()) {
 				message.channel.send('Skipping current song.');
@@ -60,14 +60,14 @@ client.on('messageCreate', message => {
 		});
 	}
 	// ACTION PAUSE
-	else if (message.content.startsWith(`${prefix}pause `)) {
+	else if (message.content.startsWith(`${prefix}pause`)) {
 		checkSession(message, false, session => {
 			session.pause();
 			message.channel.send('Player paused, use `-unpause` to unpause the player.');
 		});
 	}
 	// ACTION UNPAUSE
-	else if (message.content.startsWith(`${prefix}unpause `)) {
+	else if (message.content.startsWith(`${prefix}unpause`)) {
 		checkSession(message, false, session => {
 			session.unpause();
 			message.channel.send('Player unpaused');
@@ -79,13 +79,13 @@ client.on('messageCreate', message => {
 			playCommand(message, session);
 		});
 	}
-	else if (message.content.startsWith(`${prefix}status `)) {
+	else if (message.content.startsWith(`${prefix}status`)) {
 		checkSession(message, false, session => {
 			message.channel.send(`Status: ${session.getPlayerStatus()}, Duration: ${session.getPlayerDuration()}ms`);
 		});
 	}
 	// ACTION QUEUE
-	else if (message.content.startsWith(`${prefix}queue `)) {
+	else if (message.content.startsWith(`${prefix}queue`)) {
 		checkSession(message, false, session => {
 			try {
 				const queue = session.getQueue();
@@ -130,7 +130,7 @@ client.on('messageCreate', message => {
 			}
 		});
 	}
-	else if (message.content.startsWith(`${prefix}help `) || message.content.startsWith(`${prefix}H `)) {
+	else if (message.content.startsWith(`${prefix}help`) || message.content.startsWith(`${prefix}H`)) {
 		helpCommand(message);
 	}
 	// TODO: rebuild seek command
