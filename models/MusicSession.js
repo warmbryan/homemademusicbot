@@ -141,7 +141,7 @@ class MusicSession {
 		try {
 			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
 			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
-			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-ss', seekTime, '-c:a', 'copy', '-y', newModifiedMediaFilename]);
+			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-ss', seekTime, '-c:a', 'copy', '-y', './temp_media/' + newModifiedMediaFilename]);
 
 			process.stdout.on('data', (data) => {
 				console.warn(data.toString());
@@ -175,7 +175,41 @@ class MusicSession {
 		try {
 			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
 			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
-			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-af', `bass=g=${bassBoostAmount}`, '-y', newModifiedMediaFilename]);
+			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-af', `bass=g=${bassBoostAmount}`, '-y', './temp_media/' + newModifiedMediaFilename]);
+
+			process.stdout.on('data', (data) => {
+				console.warn(data.toString());
+				// const message = data.toString().trim();
+				// const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
+				// if (matchResult && matchResult.groups?.fileName) {
+				// 	fileName = matchResult.groups?.fileName;
+				// 	validPlay = true;
+				// }
+			});
+
+			process.stderr.on('data', (data) => {
+				console.warn(data.toString());
+			});
+
+			process.on('close', () => {
+				// set media filename
+				this.currentVideo.setMediaFilename(newModifiedMediaFilename);
+
+				// play
+				this.resource = createAudioResource('./temp_media/' + newModifiedMediaFilename);
+				this.player.play(this.resource);
+			});
+		}
+		catch (error) {
+			console.warn(error);
+		}
+	}
+
+	earrapeCurrentSong() {
+		try {
+			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
+			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
+			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-af', 'bass=g=20:f=500,acrusher=.4:1:64:0:log', '-y', './temp_media/' + newModifiedMediaFilename]);
 
 			process.stdout.on('data', (data) => {
 				console.warn(data.toString());

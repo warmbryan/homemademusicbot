@@ -5,7 +5,7 @@ const { token, prefix } = require('./config.json');
 
 // helpers
 const { comboRe, getPlaylistVideos, getVideoInfo, getQuerySearchReults } = require('./helpers/YoutubeAPI');
-const { removeFromQueueRe } = require('./helpers/CommandsRE');
+const { removeFromQueueRe, seekRe } = require('./helpers/CommandsRE');
 
 // commands
 const helpCommand = require('./commands/help');
@@ -177,6 +177,11 @@ client.on('messageCreate', message => {
 	else if (message.content.startsWith(`${prefix}bassboost `)) {
 		checkSession(message, false, session => {
 			session.bassBoostCurrentSong(20);
+		});
+	}
+	else if (message.content.startsWith(`${prefix}earrape`)) {
+		checkSession(message, false, session => {
+			session.earrapeCurrentSong();
 		});
 	}
 });
