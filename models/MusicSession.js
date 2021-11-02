@@ -141,7 +141,7 @@ class MusicSession {
 		try {
 			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
 			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
-			const process = spawn('ffmpeg', ['-i', this.currentVideo.getMediaFilename(), '-ss', seekTime, '-c:a', 'copy', '-y', newModifiedMediaFilename]);
+			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-ss', seekTime, '-c:a', 'copy', '-y', newModifiedMediaFilename]);
 
 			process.stdout.on('data', (data) => {
 				console.warn(data.toString());
@@ -175,7 +175,7 @@ class MusicSession {
 		try {
 			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
 			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
-			const process = spawn('ffmpeg', ['-i', this.currentVideo.getMediaFilename(), '-af', `bass=g=${bassBoostAmount}`, '-y', newModifiedMediaFilename]);
+			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-af', `bass=g=${bassBoostAmount}`, '-y', newModifiedMediaFilename]);
 
 			process.stdout.on('data', (data) => {
 				console.warn(data.toString());
