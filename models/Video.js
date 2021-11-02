@@ -3,6 +3,7 @@ class Video {
 		this.id = vId;
 		this.title = vTitle;
 		this.message = vMessage;
+		this.mediaFileModifications = new Array();
 	}
 
 	getId() {
@@ -27,6 +28,14 @@ class Video {
 
 	getMediaFilename() {
 		return this.mediaFilename;
+	}
+
+	addModifiedMediaFilename(modifiedMediaFilename) {
+		this.mediaFileModifications.push(modifiedMediaFilename);
+	}
+
+	getModifiedMediaFilenames() {
+		return this.mediaFileModifications;
 	}
 }
 

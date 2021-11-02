@@ -134,17 +134,17 @@ client.on('messageCreate', message => {
 		helpCommand(message);
 	}
 	// TODO: rebuild seek command
-	// else if (message.content.startsWith(`${prefix}seek`)) {
-	// 	checkSession(message, false, session => {
-	// 		const seekValueMatch = message.content.match(seekRe);
-	// 		if (seekValueMatch && seekValueMatch.groups?.seekTime !== undefined) {
-	// 			session.seek(seekValueMatch.groups?.seekTime);
-	// 		}
-	// 		else {
-	// 			message.channel.send('Invalid seek format.');
-	// 		}
-	// 	});
-	// }
+	else if (message.content.startsWith(`${prefix}seek`)) {
+		checkSession(message, false, session => {
+			const seekValueMatch = message.content.match(seekRe);
+			if (seekValueMatch && seekValueMatch.groups?.seekTime !== undefined) {
+				session.seek(seekValueMatch.groups?.seekTime);
+			}
+			else {
+				message.channel.send('Invalid seek format.');
+			}
+		});
+	}
 	else if (message.content.startsWith(`${prefix}clear`)) {
 		checkSession(message, false, session => {
 			session.clear();
@@ -172,6 +172,11 @@ client.on('messageCreate', message => {
 	else if (message.content.startsWith(`${prefix}back`)) {
 		checkSession(message, false, session => {
 			session.back();
+		});
+	}
+	else if (message.content.startsWith(`${prefix}bassboost `)) {
+		checkSession(message, false, session => {
+			session.bassBoostCurrentSong(20);
 		});
 	}
 });

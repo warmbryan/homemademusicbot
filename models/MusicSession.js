@@ -136,29 +136,74 @@ class MusicSession {
 		}
 	}
 
-	// async seek(seekTime) {
-	// 	console.log('seeked:', seekTime);
-	// 	ytdl2(this.currentVideo.getUrl(), ytdlOptions)
-	// 		.pipe(fs.createWriteStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm'))
-	// 		.on('finish', () => {
-	// 			const file = fs.createReadStream('.\\media_cache\\' + this.currentVideo.getMediaFilename() + '.webm');
-	// 			const transcoder = new prism.FFmpeg({
-	// 				args: [
-	// 					'-analyzeduration', '0',
-	// 					'-loglevel', '0',
-	// 					'-f', 's16le',
-	// 					'-ar', '48000',
-	// 					'-ac', '2',
-	// 					'-ss', seekTime,
-	// 				],
-	// 			});
+	// TODO: implement (?<timeSeek>(\d+)(ms|m|s|h))+
+	async seek(seekTime) {
+		try {
+			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
+			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
+			const process = spawn('ffmpeg', ['-i', this.currentVideo.getMediaFilename(), '-ss', seekTime, '-c:a', 'copy', '-y', newModifiedMediaFilename]);
 
-	// 			const seekedFile = file.pipe(transcoder);
-	// 			const encodedFile = seekedFile.pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }));
-	// 			this.resource = createAudioResource(encodedFile);
-	// 			this.player.play(this.resource);
-	// 		});
-	// }
+			process.stdout.on('data', (data) => {
+				console.warn(data.toString());
+				// const message = data.toString().trim();
+				// const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
+				// if (matchResult && matchResult.groups?.fileName) {
+				// 	fileName = matchResult.groups?.fileName;
+				// 	validPlay = true;
+				// }
+			});
+
+			process.stderr.on('data', (data) => {
+				console.warn(data.toString());
+			});
+
+			process.on('close', () => {
+				// set media filename
+				this.currentVideo.setMediaFilename(newModifiedMediaFilename);
+
+				// play
+				this.resource = createAudioResource('./temp_media/' + newModifiedMediaFilename);
+				this.player.play(this.resource);
+			});
+		}
+		catch (error) {
+			console.warn(error);
+		}
+	}
+
+	bassBoostCurrentSong(bassBoostAmount) {
+		try {
+			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
+			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
+			const process = spawn('ffmpeg', ['-i', this.currentVideo.getMediaFilename(), '-af', `bass=g=${bassBoostAmount}`, '-y', newModifiedMediaFilename]);
+
+			process.stdout.on('data', (data) => {
+				console.warn(data.toString());
+				// const message = data.toString().trim();
+				// const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
+				// if (matchResult && matchResult.groups?.fileName) {
+				// 	fileName = matchResult.groups?.fileName;
+				// 	validPlay = true;
+				// }
+			});
+
+			process.stderr.on('data', (data) => {
+				console.warn(data.toString());
+			});
+
+			process.on('close', () => {
+				// set media filename
+				this.currentVideo.setMediaFilename(newModifiedMediaFilename);
+
+				// play
+				this.resource = createAudioResource('./temp_media/' + newModifiedMediaFilename);
+				this.player.play(this.resource);
+			});
+		}
+		catch (error) {
+			console.warn(error);
+		}
+	}
 
 	// skips the current playing song
 	skip() {
