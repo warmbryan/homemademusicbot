@@ -188,7 +188,8 @@ client.on('messageCreate', message => {
 				session.bassBoostCurrentSong(earrapeAmount);
 			}
 			catch (error) {
-				message.channel.send(error);
+				message.channel.send('Something went wrong.');
+				console.error(error);
 			}
 		});
 	}
@@ -198,7 +199,8 @@ client.on('messageCreate', message => {
 				session.earrapeCurrentSong();
 			}
 			catch (error) {
-				message.channel.send();
+				message.channel.send('Something went wrong.');
+				console.error(error);
 			}
 		});
 	}
