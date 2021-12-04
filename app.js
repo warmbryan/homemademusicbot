@@ -175,12 +175,18 @@ client.on('messageCreate', message => {
 	}
 	else if (message.content.startsWith(`${prefix}bassboost `)) {
 		checkSession(message, false, session => {
-			const earrapeRegex = /-earrape (?<amount>\d{2})/;
+			const earrapeRegex = /-bassboost (?<amount>\d{2})/;
 			const matchResult = message.content.match(earrapeRegex);
 
+			if (!matchResult && !matchResult.groups?.amount) {
+				message.channel.send('Invalid earrape input. Try `-earrape {amount}`. Amount ranges from 5 - 50.');
+				return;
+			}
+
 			const earrapeAmount = parseInt(matchResult.groups?.amount);
-			if (!matchResult && earrapeAmount && earrapeAmount >= 20 && earrapeAmount <= 50) {
-				message.channel.send('Invalid earrape input. Try `-earrape {amount}`. Amount range starts from 20 - 50.');
+
+			if (!(earrapeAmount >= 5 && earrapeAmount <= 50)) {
+				message.channel.send('Invalid earrape input amount. Amount ranges from 5 - 50.');
 				return;
 			}
 
@@ -188,7 +194,7 @@ client.on('messageCreate', message => {
 				session.bassBoostCurrentSong(earrapeAmount);
 			}
 			catch (error) {
-				message.channel.send('Something went wrong.');
+				message.channel.send(error.message);
 				console.error(error);
 			}
 		});
@@ -199,7 +205,7 @@ client.on('messageCreate', message => {
 				session.earrapeCurrentSong();
 			}
 			catch (error) {
-				message.channel.send('Something went wrong.');
+				message.channel.send(error.message);
 				console.error(error);
 			}
 		});

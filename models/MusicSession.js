@@ -35,8 +35,10 @@ class MusicSession {
 
 		this.channelId = channel.id;
 
-		this.player.on('stateChange', (oldState, newState) => {
+		this.player.on('stateChange', async (oldState, newState) => {
 			if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
+				this.resource = null;
+
 				// clear media
 				this.currentVideo.clear();
 
@@ -66,6 +68,7 @@ class MusicSession {
 				}
 			}
 		});
+
 		this.join();
 	}
 
@@ -233,6 +236,12 @@ class MusicSession {
 					})
 					.catch(console.warn);
 			}
+
+			// this.connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
+			// 	if (oldState == newState) {
+			// 		// console.log('test');
+			// 	}
+			// });
 		}
 		catch (error) {
 			console.warn(error);
