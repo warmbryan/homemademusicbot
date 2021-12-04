@@ -8,8 +8,13 @@ const {
 	getVoiceConnection,
 } = require('@discordjs/voice');
 const { spawn } = require('child_process');
-const { ytdlp_launch_command } = require('../config.json');
+const path = require('path');
+
+const { ytdlp_launch_command, media_tmp_path } = require('../config.json');
 const { v4: uuidv4 } = require('uuid');
+
+// TODO: reduce redundant code
+// path.join moment
 
 class MusicSession {
 	constructor(channel) {
@@ -96,7 +101,7 @@ class MusicSession {
 		try {
 			let validPlay = false;
 			let fileName = uuidv4().toString();
-			const examineMediaUrl = spawn(ytdlp_launch_command, ['-f', '250/bestaudio[acodec=opus]/bestaudio', '-o', `temp_media/${fileName}.%(ext)s`, this.currentVideo.getUrl()]);
+			const examineMediaUrl = spawn(ytdlp_launch_command, ['-f', '250/bestaudio[acodec=opus]/bestaudio', '-o', path.join([media_tmp_path, `${fileName}.%(ext)s`]), this.currentVideo.getUrl()]);
 			examineMediaUrl.stdout.on('data', (data) => {
 				const message = data.toString().trim();
 				const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
@@ -116,7 +121,7 @@ class MusicSession {
 					this.currentVideo.setMediaFilename(fileName);
 
 					// play
-					this.resource = createAudioResource('./temp_media/' + fileName);
+					this.resource = createAudioResource(path.join([media_tmp_path, fileName]));
 					this.player.play(this.resource);
 				}
 			});
@@ -136,15 +141,14 @@ class MusicSession {
 	alterCurrentMedia(ffmpegAlterArgs) {
 		if (!this.isEncoding) {
 			try {
-				let ffmpegArgs = ['-i', './temp_media/' + this.currentVideo.getMediaFilename()];
-				ffmpegArgs = ffmpegArgs.concat(ffmpegAlterArgs, ['-y', './temp_media/' + newModifiedMediaFilename]);
+				let ffmpegArgs = ['-i', path.join([media_tmp_path, this.currentVideo.getMediaFilename()])];
 				const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
+				ffmpegArgs = ffmpegArgs.concat(ffmpegAlterArgs, ['-y', path.join([media_tmp_path, newModifiedMediaFilename])]);
 				this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
 				const process = spawn('ffmpeg', ffmpegArgs);
 				this.isEncoding = true;
 
 				process.stdout.on('data', (data) => {
-					// string byte
 					console.log(data.toString());
 				});
 
@@ -166,7 +170,7 @@ class MusicSession {
 			}
 			catch (error) {
 				this.isEncoding = false;
-				// console.warn(error);
+				console.error(error);
 				throw new Error('An error occured. The developer will look into this.');
 			}
 		}
