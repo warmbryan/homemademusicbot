@@ -8,10 +8,7 @@ const {
 	getVoiceConnection,
 } = require('@discordjs/voice');
 const { spawn } = require('child_process');
-const fs = require('fs');
-
 const { ytdlp_launch_command } = require('../config.json');
-
 const { v4: uuidv4 } = require('uuid');
 
 class MusicSession {
@@ -28,11 +25,16 @@ class MusicSession {
 		this.currentVideo = undefined;
 		this.currentStream = undefined;
 
+		this.encoder = undefined;
+		this.isEncoding = false;
+
 		this.channelId = channel.id;
 
 		this.player.on('stateChange', (oldState, newState) => {
 			if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
-				this.removeCurrentMediaFile();
+				// clear media
+				this.currentVideo.clear();
+
 				if (this.queue.length > 0) {
 					this.playVideo(this.getNextVideo());
 				}
@@ -67,16 +69,6 @@ class MusicSession {
 			return this.queueHistory[this.queueHistory.length - 1];
 		}
 		return null;
-	}
-
-	removeCurrentMediaFile() {
-		const fileName = this.currentVideo.getMediaFilename();
-		try {
-			fs.unlinkSync('./temp_media/' + fileName);
-		}
-		catch (err) {
-			console.warn(err);
-		}
 	}
 
 	play(video) {
@@ -136,107 +128,59 @@ class MusicSession {
 		}
 	}
 
-	// TODO: implement (?<timeSeek>(\d+)(ms|m|s|h))+
-	async seek(seekTime) {
-		try {
-			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
-			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
-			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-ss', seekTime, '-c:a', 'copy', '-y', './temp_media/' + newModifiedMediaFilename]);
+	seek(seekTime) {
+		this.alterCurrentMedia(['-ss', seekTime, '-c:a', 'copy']);
+	}
 
-			process.stdout.on('data', (data) => {
-				console.warn(data.toString());
-				// const message = data.toString().trim();
-				// const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
-				// if (matchResult && matchResult.groups?.fileName) {
-				// 	fileName = matchResult.groups?.fileName;
-				// 	validPlay = true;
-				// }
-			});
+	// alters the current media and plays it
+	alterCurrentMedia(ffmpegAlterArgs) {
+		if (!this.isEncoding) {
+			try {
+				let ffmpegArgs = ['-i', './temp_media/' + this.currentVideo.getMediaFilename()];
+				ffmpegArgs = ffmpegArgs.concat(ffmpegAlterArgs, ['-y', './temp_media/' + newModifiedMediaFilename]);
+				const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
+				this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
+				const process = spawn('ffmpeg', ffmpegArgs);
+				this.isEncoding = true;
 
-			process.stderr.on('data', (data) => {
-				console.warn(data.toString());
-			});
+				process.stdout.on('data', (data) => {
+					// string byte
+					console.log(data.toString());
+				});
 
-			process.on('close', () => {
-				// set media filename
-				this.currentVideo.setMediaFilename(newModifiedMediaFilename);
+				// process.stderr.on('data', (data) => {
+				// 	console.warn(data.toString());
+				// });
 
-				// play
-				this.resource = createAudioResource('./temp_media/' + newModifiedMediaFilename);
-				this.player.play(this.resource);
-			});
+				process.on('close', () => {
+					// set isEncoding to false
+					this.isEncoding = false;
+
+					// set media filename
+					this.currentVideo.setMediaFilename(newModifiedMediaFilename);
+
+					// play
+					this.resource = createAudioResource('./temp_media/' + newModifiedMediaFilename);
+					this.player.play(this.resource);
+				});
+			}
+			catch (error) {
+				this.isEncoding = false;
+				// console.warn(error);
+				throw new Error('An error occured. The developer will look into this.');
+			}
 		}
-		catch (error) {
-			console.warn(error);
+		else {
+			throw new Error('The player is currently processing a task requested by the user beforehand.');
 		}
 	}
 
 	bassBoostCurrentSong(bassBoostAmount) {
-		try {
-			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
-			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
-			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-af', `bass=g=${bassBoostAmount}`, '-y', './temp_media/' + newModifiedMediaFilename]);
-
-			process.stdout.on('data', (data) => {
-				console.warn(data.toString());
-				// const message = data.toString().trim();
-				// const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
-				// if (matchResult && matchResult.groups?.fileName) {
-				// 	fileName = matchResult.groups?.fileName;
-				// 	validPlay = true;
-				// }
-			});
-
-			process.stderr.on('data', (data) => {
-				console.warn(data.toString());
-			});
-
-			process.on('close', () => {
-				// set media filename
-				this.currentVideo.setMediaFilename(newModifiedMediaFilename);
-
-				// play
-				this.resource = createAudioResource('./temp_media/' + newModifiedMediaFilename);
-				this.player.play(this.resource);
-			});
-		}
-		catch (error) {
-			console.warn(error);
-		}
+		this.alterCurrentMedia(['-af', `bass=g=${bassBoostAmount}`]);
 	}
 
 	earrapeCurrentSong() {
-		try {
-			const newModifiedMediaFilename = `modified${this.currentVideo.getModifiedMediaFilenames().length + 1}-` + this.currentVideo.getMediaFilename();
-			this.currentVideo.addModifiedMediaFilename(newModifiedMediaFilename);
-			const process = spawn('ffmpeg', ['-i', './temp_media/' + this.currentVideo.getMediaFilename(), '-af', 'bass=g=20:f=500,acrusher=.4:1:64:0:log', '-y', './temp_media/' + newModifiedMediaFilename]);
-
-			process.stdout.on('data', (data) => {
-				console.warn(data.toString());
-				// const message = data.toString().trim();
-				// const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
-				// if (matchResult && matchResult.groups?.fileName) {
-				// 	fileName = matchResult.groups?.fileName;
-				// 	validPlay = true;
-				// }
-			});
-
-			process.stderr.on('data', (data) => {
-				console.warn(data.toString());
-			});
-
-			process.on('close', () => {
-				// set media filename
-				this.currentVideo.setMediaFilename(newModifiedMediaFilename);
-
-				// play
-				this.resource = createAudioResource('./temp_media/' + newModifiedMediaFilename);
-				this.player.play(this.resource);
-			});
-		}
-		catch (error) {
-			console.warn(error);
-		}
+		this.alterCurrentMedia(['-af', 'bass=g=20:f=500,acrusher=.4:1:64:0:log']);
 	}
 
 	// skips the current playing song
@@ -295,7 +239,6 @@ class MusicSession {
 	remove(index, message) {
 		if (index <= this.queue.length) {
 			this.queue.splice(index - 1, 1);
-			// TODO: make the message a lil nicer
 			return message.channel.send('Removed Song #' + index + ' from the queue');
 		}
 		else {

@@ -118,12 +118,6 @@ client.on('messageCreate', message => {
 					const songId = Number(reMatch.groups?.songId);
 					session.remove(songId, message);
 				}
-				// TODO: remove song in queue using keyword
-				// else if (reMatch.groups?.keyword !== undefined) {
-				// 	const keyword = reMatch.groups?.keyword;
-				// 	queue.map((videoId, index) => {
-				// 	})
-				// }
 			}
 			else {
 				return message.channel.send('Try `-r|-remove {songId}` with songs in the queue.');
@@ -133,15 +127,20 @@ client.on('messageCreate', message => {
 	else if (message.content.startsWith(`${prefix}help`) || message.content.startsWith(`${prefix}H`)) {
 		helpCommand(message);
 	}
-	// TODO: rebuild seek command
 	else if (message.content.startsWith(`${prefix}seek`)) {
 		checkSession(message, false, session => {
 			const seekValueMatch = message.content.match(seekRe);
-			if (seekValueMatch && seekValueMatch.groups?.seekTime !== undefined) {
+			// TODO: implement (?<timeSeek>(\d+)(ms|m|s|h))+
+			if (!seekValueMatch && seekValueMatch.groups?.seekTime) {
+				message.channel.send('Invalid seek input. Try `-seek {amount}s|m|h` or `-seek {HH:MM:SS}`.');
+				return;
+			}
+
+			try {
 				session.seek(seekValueMatch.groups?.seekTime);
 			}
-			else {
-				message.channel.send('Invalid seek format.');
+			catch (error) {
+				message.channel.send(error);
 			}
 		});
 	}
@@ -176,12 +175,31 @@ client.on('messageCreate', message => {
 	}
 	else if (message.content.startsWith(`${prefix}bassboost `)) {
 		checkSession(message, false, session => {
-			session.bassBoostCurrentSong(20);
+			const earrapeRegex = /-earrape (?<amount>\d{2})/;
+			const matchResult = message.content.match(earrapeRegex);
+
+			const earrapeAmount = parseInt(matchResult.groups?.amount);
+			if (!matchResult && earrapeAmount && earrapeAmount >= 20 && earrapeAmount <= 50) {
+				message.channel.send('Invalid earrape input. Try `-earrape {amount}`. Amount range starts from 20 - 50.');
+				return;
+			}
+
+			try {
+				session.bassBoostCurrentSong(earrapeAmount);
+			}
+			catch (error) {
+				message.channel.send(error);
+			}
 		});
 	}
 	else if (message.content.startsWith(`${prefix}earrape`)) {
 		checkSession(message, false, session => {
-			session.earrapeCurrentSong();
+			try {
+				session.earrapeCurrentSong();
+			}
+			catch (error) {
+				message.channel.send();
+			}
 		});
 	}
 });
