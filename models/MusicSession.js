@@ -9,17 +9,14 @@ const {
 } = require('@discordjs/voice');
 const { spawn } = require('child_process');
 const path = require('path');
-
 const { ytdlp_launch_command, media_tmp_path } = require('../config.json');
 const { v4: uuidv4 } = require('uuid');
-
-// TODO: reduce redundant code
-// path.join moment
+const { sendMessage } = require('../utils/discord');
 
 class MusicSession {
 	constructor(channel) {
-		this.queue = [];
-		this.queueHistory = [];
+		this.queue = new Array();
+		this.queueHistory = new Array();
 		this.player = createAudioPlayer();
 		this.resource = undefined;
 
@@ -53,9 +50,7 @@ class MusicSession {
 					this.inactivityTimeout = setTimeout(async () => {
 						try {
 							if (this.queueHistory.length > 0) {
-								const lastPlayedMedia = this.queueHistory.pop();
-								const messageObj = lastPlayedMedia.getMessage();
-								await messageObj.channel.send('I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
+								sendMessage(this.channelId, 'I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
 							}
 						}
 						catch (e) {
@@ -99,7 +94,7 @@ class MusicSession {
 	async playVideo(video) {
 		this.join();
 		this.currentVideo = video;
-		this.currentVideo.getMessage().channel.send('Playing `' + this.currentVideo.getTitle().unescapeHTML() + '`.');
+		sendMessage(this.channelId, `Playing \`${this.currentVideo.getTitle().unescapeHTML()}\`.`);
 
 		try {
 			let validPlay = false;
@@ -130,7 +125,7 @@ class MusicSession {
 			});
 		}
 		catch (exception) {
-			this.currentVideo.getMessage().channel.send('Something went wrong.');
+			sendMessage(this.channelId, 'Something went wrong.');
 			this.player.stop();
 			console.warn(exception);
 		}
@@ -255,7 +250,7 @@ class MusicSession {
 			return message.channel.send('Removed Song #' + index + ' from the queue');
 		}
 		else {
-			return message.channel.send('No such music in queue.');
+			return message.channel.send('No such song in queue.');
 		}
 	}
 

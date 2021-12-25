@@ -307,3 +307,5 @@ function playCommand(message, session) {
 		}
 	}
 }
+
+module.exports = client;
