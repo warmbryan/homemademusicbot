@@ -11,16 +11,18 @@ const { spawn } = require('child_process');
 const path = require('path');
 const { ytdlp_launch_command, media_tmp_path } = require('../config.json');
 const { v4: uuidv4 } = require('uuid');
-const { sendMessage } = require('../utils/discord');
+const { sendMessage } = require('../utilities/messages');
 
 class MusicSession {
-	constructor(channel) {
+	constructor(message) {
 		this.queue = new Array();
 		this.queueHistory = new Array();
 		this.player = createAudioPlayer();
 		this.resource = undefined;
 
-		this.channel = channel;
+		this.voiceChannel = message.member.voice.channel;
+		this.textChannelId = message.channel.id;
+
 		this.connection = undefined;
 		this.inactivityTimeout = undefined;
 
@@ -29,8 +31,6 @@ class MusicSession {
 
 		this.encoder = undefined;
 		this.isEncoding = false;
-
-		this.channelId = channel.id;
 
 		this.player.on('stateChange', async (oldState, newState) => {
 			if (oldState.status === AudioPlayerStatus.Playing && newState.status === AudioPlayerStatus.Idle) {
@@ -50,7 +50,7 @@ class MusicSession {
 					this.inactivityTimeout = setTimeout(async () => {
 						try {
 							if (this.queueHistory.length > 0) {
-								sendMessage(this.channelId, 'I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
+								sendMessage(this.textChannelId, 'I will make my leave here, type `-join` or play something to start a new session. I have an idle time of 5 minutes.');
 							}
 						}
 						catch (e) {
@@ -94,7 +94,7 @@ class MusicSession {
 	async playVideo(video) {
 		this.join();
 		this.currentVideo = video;
-		sendMessage(this.channelId, `Playing \`${this.currentVideo.getTitle().unescapeHTML()}\`.`);
+		sendMessage(this.textChannelId, `Playing \`${this.currentVideo.getTitle().unescapeHTML()}\`.`);
 
 		try {
 			let validPlay = false;
@@ -125,7 +125,7 @@ class MusicSession {
 			});
 		}
 		catch (exception) {
-			sendMessage(this.channelId, 'Something went wrong.');
+			sendMessage(this.textChannelId, 'Something went wrong.');
 			this.player.stop();
 			console.warn(exception);
 		}
@@ -206,9 +206,9 @@ class MusicSession {
 
 	async connect() {
 		this.connection = joinVoiceChannel({
-			channelId: this.channel.id,
-			guildId: this.channel.guild.id,
-			adapterCreator: this.channel.guild.voiceAdapterCreator,
+			channelId: this.voiceChannel.id,
+			guildId: this.voiceChannel.guild.id,
+			adapterCreator: this.voiceChannel.guild.voiceAdapterCreator,
 		});
 
 		try {
@@ -223,7 +223,7 @@ class MusicSession {
 
 	join() {
 		try {
-			const newConnection = getVoiceConnection(this.channel.guild.id);
+			const newConnection = getVoiceConnection(this.voiceChannel.guild.id);
 			if (newConnection === undefined) {
 				this.connect()
 					.then(connection => {
@@ -257,7 +257,7 @@ class MusicSession {
 	leave() {
 		try {
 			clearTimeout(this.inactivityTimeout);
-			if (getVoiceConnection(this.channel.guild.id) != undefined) {
+			if (getVoiceConnection(this.voiceChannel.guild.id) != undefined) {
 				this.connection.destroy();
 				return true;
 			}

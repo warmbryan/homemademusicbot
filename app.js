@@ -1,25 +1,14 @@
-#!/usr/bin/env node
-
-// import required classes and objects
 const { token, prefix } = require('./config.json');
-
-// helpers
 const { comboRe, getPlaylistVideos, getVideoInfo, getQuerySearchReults } = require('./helpers/YoutubeAPI');
 const { removeFromQueueRe, seekRe } = require('./helpers/CommandsRE');
-
-// commands
 const helpCommand = require('./commands/help');
-
-// models
 const Video = require('./models/Video');
 const MusicSession = require('./models/MusicSession');
-
-// imports
-const { Client, Intents, MessageEmbed } = require('discord.js');
+const { MessageEmbed } = require('discord.js');
 const { AudioPlayerStatus } = require('@discordjs/voice');
+const client = require('./client');
 
 const musicSessions = new Object();
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] });
 
 String.prototype.unescapeHTML = function() {
 	return String(this).replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"').replace('&#39;', '\'').replace('&#x2F;', '/');
@@ -210,6 +199,19 @@ client.on('messageCreate', message => {
 			}
 		});
 	}
+	else if (message.content.startsWith('-ping')) {
+		try {
+			console.log(message.channel.id);
+			client.channels.fetch(message.channel.id)
+				.then(channel => {
+					console.log(channel);
+					channel.send('pong');
+				});
+		}
+		catch (error) {
+			console.error(error);
+		}
+	}
 });
 
 client.login(token);
@@ -220,7 +222,7 @@ async function manageSession(message, autoCreateNewSession) {
 	}
 	else if (autoCreateNewSession) {
 		if (message.member?.voice.channel) {
-			musicSessions[message.guild.id] = new MusicSession(message.member?.voice.channel);
+			musicSessions[message.guild.id] = new MusicSession(message);
 			return musicSessions[message.guild.id];
 		}
 		else {
@@ -307,5 +309,3 @@ function playCommand(message, session) {
 		}
 	}
 }
-
-module.exports = client;
