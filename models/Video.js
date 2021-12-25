@@ -7,6 +7,7 @@ class Video {
 		this.id = vId;
 		this.title = vTitle;
 		this.message = vMessage;
+		this.mediaFilename = undefined;
 		this.mediaFileModifications = new Array();
 	}
 
