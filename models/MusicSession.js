@@ -100,9 +100,13 @@ class MusicSession {
 			let validPlay = false;
 			let fileName = uuidv4().toString();
 			const examineMediaUrl = spawn(ytdlp_launch_command, ['-f', '250/bestaudio[acodec=opus]/bestaudio', '-o', path.join(media_tmp_path, `${fileName}.%(ext)s`), this.currentVideo.getUrl()]);
+			
 			examineMediaUrl.stdout.on('data', (data) => {
 				const message = data.toString().trim();
-				const matchResult = message.match(/\[download\] Destination: temp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
+				
+				console.log(message)
+
+				const matchResult = message.match(/\[download\] Destination: tmp_media(\\|\/)(?<fileName>[-0-9a-z]{36}\.[a-z0-9]+)/);
 				if (matchResult && matchResult.groups?.fileName) {
 					fileName = matchResult.groups?.fileName;
 					validPlay = true;
