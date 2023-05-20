@@ -1,6 +1,8 @@
 const axios = require('axios').default;
-const { ytkey } = require('../config.json');
-const comboRe = /(^-(p|play) (?<playlistUrl>https:\/\/www\.youtube\.com\/playlist\?list=(?<playlistId>[-_A-Za-z0-9]+))$)|(^-(p|play) (?<videoUrl>https:\/\/www.youtube.com\/watch\?v=(?<videoId>[-_A-Za-z0-9]{11}))$)|(^-(p|play) (?<keyword>[\w \W]{3,40})$)/
+const { youtube_api_key, command_prefix } = require('../config.json');
+const comboRe = "(^\\" + command_prefix + "(p|play) (?<playlistUrl>https:\\/\\/www\\.youtube\.com\/playlist\?list=(?<playlistId>[-_A-Za-z0-9]+))$)|(^\\" + command_prefix + "(p|play) (?<videoUrl>https:\/\/www.youtube.com\/watch\?v=(?<videoId>[-_A-Za-z0-9]{11}))$)|(^-(p|play) (?<keyword>[\w \W]{3,40})$)";
+
+const comboRe2 = "(^\\" + command_prefix + "(p|play) (?<playlistUrl>https:\\/\\/www\\.youtube\\.com\\/playlist\\?list=(?<playlistId>[-_A-Za-z0-9]+))$)|(^\\" + command_prefix + "(p|play) (?<videoUrl>https:\\/\\/www.youtube.com\\/watch\\?v=(?<videoId>[-_A-Za-z0-9]{11}))$)|(^\\" + command_prefix + "(p|play) (?<keyword>[\\w \\W]{3,40})$)";
 
 function getPlaylistVideos(playlistId) {
     return axios.get(
@@ -8,7 +10,7 @@ function getPlaylistVideos(playlistId) {
         {
             params: {
                 part: 'id,contentDetails,snippet,status',
-                key: ytkey,
+                key: youtube_api_key,
                 playlistId,
                 maxResults: 50
             },
@@ -22,7 +24,7 @@ function getVideoInfo(videoId) {
         'https://youtube.googleapis.com/youtube/v3/videos',
         {
             params: {
-                key: ytkey,
+                key: youtube_api_key,
                 part: 'snippet,contentDetails,statistics',
                 id: videoId
             },
@@ -36,7 +38,7 @@ function getQuerySearchReults(query, maxResults) {
         'https://www.googleapis.com/youtube/v3/search',
         {
             params: {
-                key: ytkey,
+                key: youtube_api_key,
                 part: 'snippet',
                 q: query,
                 maxResults
@@ -55,7 +57,7 @@ function getVideoBlockedStatus(videoId, callback) {
         'https://youtube.googleapis.com/youtube/v3/videos',
         {
             params: {
-                key: ytkey,
+                key: youtube_api_key,
                 part: 'snippet,contentDetails,statistics',
                 id: videoId
             },
@@ -74,4 +76,5 @@ module.exports = {
     craftVideoUrl,
     getVideoBlockedStatus,
     comboRe,
+    comboRe2,
 }
