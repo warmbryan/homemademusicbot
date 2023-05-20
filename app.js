@@ -1,5 +1,5 @@
-const { token, prefix } = require('./config.json');
-const { comboRe, getPlaylistVideos, getVideoInfo, getQuerySearchReults } = require('./helpers/YoutubeAPI');
+const { discord_token, command_prefix } = require('./config.json');
+const { comboRe, getPlaylistVideos, getVideoInfo, getQuerySearchReults, comboRe2 } = require('./helpers/YoutubeAPI');
 const { removeFromQueueRe, seekRe } = require('./helpers/CommandsRE');
 const helpCommand = require('./commands/help');
 const Video = require('./models/Video');
@@ -21,18 +21,23 @@ client.once('ready', () => {
 	// when i start implementing stateful sessions using mysql
 });
 
+
+
 client.on('messageCreate', message => {
 	if (message.author.bot) return;
-	if (!message.content.startsWith(prefix)) return;
+
+	debugHere(message);
+
+	if (!message.content.startsWith(command_prefix)) return;
 
 	// ACTION JOIN
-	if (message.content.startsWith(`${prefix}join`)) {
+	if (message.content.startsWith(`${command_prefix}join`)) {
 		checkSession(message, true, session => {
 			session.join();
 		});
 	}
 	// ACTION LEAVE
-	else if (message.content.startsWith(`${prefix}leave`)) {
+	else if (message.content.startsWith(`${command_prefix}leave`)) {
 		checkSession(message, false, async session => {
 			if (session.leave()) {
 				message.channel.send('See you later.');
@@ -41,7 +46,7 @@ client.on('messageCreate', message => {
 		});
 	}
 	// ACTION SKIP
-	else if (message.content.startsWith(`${prefix}skip`)) {
+	else if (message.content.startsWith(`${command_prefix}skip`)) {
 		checkSession(message, false, session => {
 			if (session.skip()) {
 				message.channel.send('Skipping current song.');
@@ -49,32 +54,32 @@ client.on('messageCreate', message => {
 		});
 	}
 	// ACTION PAUSE
-	else if (message.content.startsWith(`${prefix}pause`)) {
+	else if (message.content.startsWith(`${command_prefix}pause`)) {
 		checkSession(message, false, session => {
 			session.pause();
 			message.channel.send('Player paused, use `-unpause` to unpause the player.');
 		});
 	}
 	// ACTION UNPAUSE
-	else if (message.content.startsWith(`${prefix}unpause`)) {
+	else if (message.content.startsWith(`${command_prefix}unpause`)) {
 		checkSession(message, false, session => {
 			session.unpause();
 			message.channel.send('Player unpaused');
 		});
 	}
 	// ACTION PLAY
-	else if (message.content.startsWith(`${prefix}play `) || message.content.startsWith(`${prefix}p `)) {
+	else if (message.content.startsWith(`${command_prefix}play `) || message.content.startsWith(`${command_prefix}p `)) {
 		checkSession(message, true, session => {
 			playCommand(message, session);
 		});
 	}
-	else if (message.content.startsWith(`${prefix}status`)) {
+	else if (message.content.startsWith(`${command_prefix}status`)) {
 		checkSession(message, false, session => {
 			message.channel.send(`Status: ${session.getPlayerStatus()}, Duration: ${session.getPlayerDuration()}ms`);
 		});
 	}
 	// ACTION QUEUE
-	else if (message.content.startsWith(`${prefix}queue`)) {
+	else if (message.content.startsWith(`${command_prefix}queue`)) {
 		checkSession(message, false, session => {
 			try {
 				const queue = session.getQueue();
@@ -99,7 +104,7 @@ client.on('messageCreate', message => {
 		});
 	}
 	// ACTION REMOVE
-	else if (message.content.startsWith(`${prefix}remove `) || message.content.startsWith(`${prefix}r `)) {
+	else if (message.content.startsWith(`${command_prefix}remove `) || message.content.startsWith(`${command_prefix}r `)) {
 		checkSession(message, false, session => {
 			const reMatch = message.content.match(removeFromQueueRe);
 			if (reMatch) {
@@ -113,10 +118,10 @@ client.on('messageCreate', message => {
 			}
 		});
 	}
-	else if (message.content.startsWith(`${prefix}help`) || message.content.startsWith(`${prefix}H`)) {
+	else if (message.content.startsWith(`${command_prefix}help`) || message.content.startsWith(`${command_prefix}H`)) {
 		helpCommand(message);
 	}
-	else if (message.content.startsWith(`${prefix}seek`)) {
+	else if (message.content.startsWith(`${command_prefix}seek`)) {
 		checkSession(message, false, session => {
 			const seekValueMatch = message.content.match(seekRe);
 			// TODO: implement (?<timeSeek>(\d+)(ms|m|s|h))+
@@ -133,12 +138,12 @@ client.on('messageCreate', message => {
 			}
 		});
 	}
-	else if (message.content.startsWith(`${prefix}clear`)) {
+	else if (message.content.startsWith(`${command_prefix}clear`)) {
 		checkSession(message, false, session => {
 			session.clear();
 		});
 	}
-	else if (message.content.startsWith(`${prefix}now`)) {
+	else if (message.content.startsWith(`${command_prefix}now`)) {
 		checkSession(message, false, session => {
 			const cVideo = session.getCurrentVideo();
 
@@ -151,18 +156,18 @@ client.on('messageCreate', message => {
 			message.channel.send({ embeds: [embedMsg] });
 		});
 	}
-	else if (message.content.startsWith(`${prefix}getvideo`)) {
+	else if (message.content.startsWith(`${command_prefix}getvideo`)) {
 		checkSession(message, false, session => {
 			session.getLastVideo();
 		});
 	}
 
-	else if (message.content.startsWith(`${prefix}back`)) {
+	else if (message.content.startsWith(`${command_prefix}back`)) {
 		checkSession(message, false, session => {
 			session.back();
 		});
 	}
-	else if (message.content.startsWith(`${prefix}bassboost `)) {
+	else if (message.content.startsWith(`${command_prefix}bassboost `)) {
 		checkSession(message, false, session => {
 			const earrapeRegex = /-bassboost (?<amount>\d{2})/;
 			const matchResult = message.content.match(earrapeRegex);
@@ -188,7 +193,7 @@ client.on('messageCreate', message => {
 			}
 		});
 	}
-	else if (message.content.startsWith(`${prefix}earrape`)) {
+	else if (message.content.startsWith(`${command_prefix}earrape`)) {
 		checkSession(message, false, session => {
 			try {
 				session.earrapeCurrentSong();
@@ -214,7 +219,7 @@ client.on('messageCreate', message => {
 	}
 });
 
-client.login(token);
+client.login(discord_token);
 
 async function manageSession(message, autoCreateNewSession) {
 	if (message.guild.id in musicSessions) {
@@ -253,7 +258,7 @@ function clearSession(guildId) {
 }
 
 function playCommand(message, session) {
-	const youtubeUrlMatch = message.content.match(comboRe);
+	const youtubeUrlMatch = message.content.match(comboRe2);
 	if (youtubeUrlMatch) {
 		if (youtubeUrlMatch.groups?.videoUrl !== undefined) {
 			// add new songs to queue
@@ -308,4 +313,11 @@ function playCommand(message, session) {
 				.catch(console.warn);
 		}
 	}
+}
+
+function debugHere(message)
+{
+	const youtubeComboRe = new RegExp(comboRe2, "");
+
+	console.info(comboRe, "match: ", message.content.match(youtubeComboRe));
 }
