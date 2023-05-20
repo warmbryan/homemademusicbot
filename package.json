@@ -1,24 +1,28 @@
 {
-  "name": "musicbotjs",
+  "name": "homemademusicbot",
   "version": "1.0.0",
-  "description": "A simple music bot for me to play music.",
+  "description": "a discord bot that plays music when given a media url",
   "main": "app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js"
-  },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@discordjs/opus": "^0.5.3",
-    "@discordjs/voice": "^0.6.0",
-    "axios": "^0.21.4",
-    "discord.js": "^13.1.0",
-    "libsodium-wrappers": "^0.7.9",
-    "node": "16.9.1",
+    "@discordjs/opus": "^0.8.0",
+    "@discordjs/voice": "^0.11.0",
+    "axios": "^0.27.2",
+    "discord.js": "^14.0.3",
+    "libsodium-wrappers": "^0.7.10",
     "uuid": "^8.3.2"
   },
-  "devDependencies": {
-    "eslint": "^7.32.0"
-  }
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/warmbryan/homemademusicbot.git"
+  },
+  "author": "Bryan Toh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/warmbryan/homemademusicbot/issues"
+  },
+  "homepage": "https://github.com/warmbryan/homemademusicbot#readme"
 }
