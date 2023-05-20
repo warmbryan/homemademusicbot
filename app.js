@@ -21,8 +21,6 @@ client.once('ready', () => {
 	// when i start implementing stateful sessions using mysql
 });
 
-
-
 client.on('messageCreate', message => {
 	if (message.author.bot) return;
 
