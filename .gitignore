@@ -6,3 +6,4 @@ media_cache
 binaries
 temp_media
 .DS_STORE
+tmp_media
